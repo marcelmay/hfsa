@@ -53,7 +53,7 @@
                     <programs>
                         <program>
                             <mainClass>de.m3y.hadoop.hdfs.hfsa.tool.HdfsFSImageTool</mainClass>
-                            <id>hdfs-tool</id>
+                            <id>hfsa-tool</id>
                         </program>
                     </programs>
                     <repositoryLayout>flat</repositoryLayout>
