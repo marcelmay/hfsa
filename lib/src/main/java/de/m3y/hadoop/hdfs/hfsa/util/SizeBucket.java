@@ -5,10 +5,10 @@ import java.util.Arrays;
 /**
  * Counts size in buckets.
  * <p>
- * Used for getting the size distribution.
+ * Used for getting the size distribution of files.
  */
 public class SizeBucket {
-    // 0 < 1MB < 2MB < 4MB < ...<  1 TB > 1 TB
+    // 0 < 1MB < 2MB < 4MB < ...
     static final int INITIAL_BUCKETS = sizeBucket(1024L * 1024L * 1024L * 1024L) + 2;
     private long[] fileSizeBuckets = new long[INITIAL_BUCKETS];
 
@@ -20,9 +20,8 @@ public class SizeBucket {
     public void add(long size) {
         int bucket = sizeBucket(size);
         if (bucket >= fileSizeBuckets.length) {
-            int length = bucket;
-            long[] newFileSizeBuckets = new long[length];
-            System.arraycopy(fileSizeBuckets,0,newFileSizeBuckets,0,fileSizeBuckets.length);
+            long[] newFileSizeBuckets = new long[bucket];
+            System.arraycopy(fileSizeBuckets, 0, newFileSizeBuckets, 0, fileSizeBuckets.length);
             fileSizeBuckets = newFileSizeBuckets;
         }
         fileSizeBuckets[bucket]++;
@@ -39,27 +38,37 @@ public class SizeBucket {
     static int sizeBucket(long size) {
         if (size == 0L) {
             return 0;
-        } else if (size < 1024l * 1024l) {
+        } else if (size < 1024L * 1024L) {
             return 1;
         }
         if (size < 2L * 1024L * 1024L) {
             return 2;
         }
-        double mb = size / (2L * 1024L * 1024L);
+        double mb = ((double) size) / (double) (2L * 1024L * 1024L);
         final int v = (int) (Math.log(mb) / Math.log(2d));
         return v + 3;
     }
 
+    /**
+     * Computes the bucket size in bytes.
+     *
+     * @return the bucket sizes.
+     */
     long[] getBucketSizedInBytes() {
-        long sizes[] = new long[findMaxNumBucket()+1];
+        long sizes[] = new long[findMaxNumBucket() + 1];
         sizes[0] = 0L;
         sizes[1] = 1024L * 1024; // 1 MiB
-        for(int i =2;i<sizes.length;i++) {
-            sizes[i] = sizes[i-1] * 2L;
+        for (int i = 2; i < sizes.length; i++) {
+            sizes[i] = sizes[i - 1] * 2L;
         }
         return sizes;
     }
 
+    /**
+     * Finds the number of filled buckets.
+     *
+     * @return the number of filled buckets.
+     */
     int findMaxNumBucket() {
         int max = 0;
         for (int i = 0; i < fileSizeBuckets.length; i++) {

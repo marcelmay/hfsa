@@ -70,14 +70,10 @@ public class FSImageLoader {
                             return 0;
                         }
                     } catch (InvalidProtocolBufferException e) {
-                        throw new RuntimeException(e);
+                        throw new IllegalArgumentException(e);
                     }
                 }
             };
-
-    public int getNumChildren(FsImageProto.INodeSection.INode inode) {
-        return dirmap.containsKey(inode.getId()) ? dirmap.get(inode.getId()).length : 0;
-    }
 
     static class SectionComparator implements Comparator<FsImageProto.FileSummary.Section> {
         @Override
@@ -299,7 +295,7 @@ public class FSImageLoader {
                 try {
                     visit(visitor, nodeId);
                 } catch (IOException e) {
-                    LOG.error("Can not traverse "+nodeId, e);
+                    LOG.error("Can not traverse " + nodeId, e);
                 }
             });
         }
@@ -532,5 +528,9 @@ public class FSImageLoader {
             }
         }
         return null;
+    }
+
+    public int getNumChildren(FsImageProto.INodeSection.INode inode) {
+        return dirmap.containsKey(inode.getId()) ? dirmap.get(inode.getId()).length : 0;
     }
 }
