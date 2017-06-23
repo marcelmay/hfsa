@@ -4,9 +4,9 @@
 
 Hadoop FSImage Analyzer (HFSA) complements the [Apache Hadoop 'hadoop-hdfs' tool](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html)
 by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html#The_Persistence_of_File_System_Metadata)
-* tooling support for summary overview of the HDFS data files and directories of users and groups
+* [tooling](tool) support for summary overview of the HDFS data files and directories of users and groups
   (answering 'who has how many/big/small files...')
-* a library for fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
+* a [library](lib) for fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
   derived from [Apache HDFS FSImageLoder](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java) )
 
 TODO: Example 
@@ -23,7 +23,7 @@ It's an initial, drafty version.
 - Deployment to Maven repo
 - symlinks summary
 - error handling and cli options for tool
-- report and config options for topk/sorting ...
+- report and config options for topk/sorting/selection/...
 
 ### License
 
