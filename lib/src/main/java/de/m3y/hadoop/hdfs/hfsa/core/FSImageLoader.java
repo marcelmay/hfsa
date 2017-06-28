@@ -17,6 +17,9 @@
  */
 package de.m3y.hadoop.hdfs.hfsa.core;
 
+import java.io.*;
+import java.util.*;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -35,9 +38,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.LimitInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * FSImageLoader loads fsimage and provide methods to return
@@ -219,8 +219,9 @@ public class FSImageLoader {
             inodes[i] = bytes;
         }
         LOG.debug("Sorting inodes");
+        long start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
-        LOG.debug("Finished sorting inodes");
+        LOG.info("Finished sorting inodes [" + (System.currentTimeMillis() - start) + "ms]");
         return inodes;
     }
 
@@ -266,8 +267,19 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visit(FsVisitor visitor) throws IOException {
-        final long rootNodeId = lookup("/");
-        visit(visitor, rootNodeId);
+        visit(visitor, "/");
+    }
+
+    /**
+     * Traverses FS tree, starting at given directory path
+     *
+     * @param visitor the visitor.
+     * @param path    the directory path to start with
+     * @throws IOException on error.
+     */
+    public void visit(FsVisitor visitor, String path) throws IOException {
+        final long nodeId = lookup(path);
+        visit(visitor, nodeId);
     }
 
     /**
@@ -277,7 +289,18 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visitParallel(FsVisitor visitor) throws IOException {
-        final long rootNodeId = lookup("/");
+        visitParallel(visitor, "/");
+    }
+
+    /**
+     * Traverses FS tree, using Java parallel stream.
+     *
+     * @param visitor the visitor.
+     * @param path    the directory path to start with
+     * @throws IOException on error.
+     */
+    public void visitParallel(FsVisitor visitor, String path) throws IOException {
+        final long rootNodeId = lookup(path);
         FsImageProto.INodeSection.INode rootNode = fromINodeId(rootNodeId);
         visitor.onDirectory(rootNode);
         if (dirmap.containsKey(rootNodeId)) {
