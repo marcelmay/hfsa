@@ -24,6 +24,7 @@ public interface FsVisitor {
 
     /**
      * Invoked for each sym link.
+     *
      * @param inode the sym link inode.
      */
     void onSymLink(FsImageProto.INodeSection.INode inode);

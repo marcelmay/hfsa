@@ -9,7 +9,7 @@ import java.util.Arrays;
  */
 public class SizeBucket {
     // 0 < 1MB < 2MB < 4MB < ...
-    static final int INITIAL_BUCKETS = sizeBucket(1024L * 1024L * 1024L * 1024L) + 2;
+    static final int INITIAL_BUCKETS = computeBucket(1024L * 1024L * 1024L * 1024L) + 2;
     private long[] fileSizeBuckets = new long[INITIAL_BUCKETS];
 
     /**
@@ -18,7 +18,7 @@ public class SizeBucket {
      * @param size the size.
      */
     public void add(long size) {
-        int bucket = sizeBucket(size);
+        int bucket = computeBucket(size);
         if (bucket >= fileSizeBuckets.length) {
             long[] newFileSizeBuckets = new long[bucket];
             System.arraycopy(fileSizeBuckets, 0, newFileSizeBuckets, 0, fileSizeBuckets.length);
@@ -28,14 +28,14 @@ public class SizeBucket {
     }
 
     /**
-     * Computes the size bucket number.
+     * Computes the bucket for given size.
      * <p>
      * Buckets start at 0B < 1MB < 2MB < 4MB < 8MB ...
      *
      * @param size the size
      * @return the bucket.
      */
-    static int sizeBucket(long size) {
+    static int computeBucket(long size) {
         if (size == 0L) {
             return 0;
         } else if (size < 1024L * 1024L) {
@@ -50,11 +50,11 @@ public class SizeBucket {
     }
 
     /**
-     * Computes the bucket size in bytes.
+     * Computes the bucket borders in bytes.
      *
      * @return the bucket sizes.
      */
-    long[] getBucketSizedInBytes() {
+    long[] computeBucketUpperBorders() {
         long sizes[] = new long[findMaxNumBucket() + 1];
         sizes[0] = 0L;
         sizes[1] = 1024L * 1024; // 1 MiB
@@ -91,10 +91,21 @@ public class SizeBucket {
 
     }
 
+    /**
+     * Gets the counter of given bucket.
+     *
+     * @param bucket index
+     * @return the bucket counter.
+     */
     long get(int bucket) {
         return fileSizeBuckets[bucket];
     }
 
+    /**
+     * Gets all bucket counters.
+     *
+     * @return array containing bucket counters.
+     */
     long[] get() {
         return fileSizeBuckets;
     }

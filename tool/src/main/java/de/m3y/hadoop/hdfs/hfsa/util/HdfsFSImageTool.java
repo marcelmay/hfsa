@@ -1,6 +1,5 @@
 package de.m3y.hadoop.hdfs.hfsa.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
@@ -18,7 +17,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * HDFS FSImage Tool extracts a summary of HDFS Usage from fsimage.
  */
 public class HdfsFSImageTool {
-    private static final Logger log = getLogger(HdfsFSImageTool.class);
+    private static final Logger LOG = getLogger(HdfsFSImageTool.class);
 
     abstract static class AbstractStats {
         long sumFiles;
@@ -39,27 +38,122 @@ public class HdfsFSImageTool {
     static class OverallStats extends AbstractStats {
     }
 
-    public static class Options {
-        @CommandLine.Option(names = {"-h", "--help"}, help = true,
-                description = "Displays this help message and quits.")
-        private boolean helpRequested = false;
-
-        @CommandLine.Option(names = {"-s", "--sort"}, help = true,
-                description = "Sort by (fs) file size, (fc) file count.")
-        private String sort;
-
-        @CommandLine.Parameters(arity = "1", paramLabel = "FILE", description = "FSImage file to process.")
-        private File fsImageFile;
-    }
-
-    static void doPerform(Options options) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(options.fsImageFile, "r");
-        final FSImageLoader loader = FSImageLoader.load(file);
-
+    static class Report {
         final Map<String, GroupStats> groupStats = new HashMap<>();
         final Map<String, UserStats> userStats = new HashMap<>();
         final OverallStats overallStats = new OverallStats();
-        log.info("Visting ...");
+
+        GroupStats getOrCreateGroupStats(String groupName) {
+            GroupStats stat = groupStats.get(groupName);
+            if (null == stat) {
+                stat = new GroupStats();
+                stat.groupName = groupName;
+                groupStats.put(groupName, stat);
+            }
+            return stat;
+        }
+
+        UserStats getOrCreateUserStats(String userName) {
+            UserStats stat = userStats.get(userName);
+            if (null == stat) {
+                stat = new UserStats();
+                stat.userName = userName;
+                userStats.put(userName, stat);
+            }
+            return stat;
+        }
+    }
+
+    static void doPerform(CliOptions options) throws IOException {
+        RandomAccessFile file = new RandomAccessFile(options.fsImageFile, "r");
+        final FSImageLoader loader = FSImageLoader.load(file);
+
+        // Check options
+        if (null == options.dirs || options.dirs.length == 0) {
+            options.dirs = new String[]{"/"}; // Default
+        }
+
+        for (String dir : options.dirs) {
+            doSummary(options, loader, dir);
+        }
+    }
+
+    private static void doSummary(CliOptions options, FSImageLoader loader, String dir) throws IOException {
+        LOG.info("Visting " + dir + " ...");
+        long start = System.currentTimeMillis();
+        final Report report = computeReport(loader, dir);
+        LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
+
+        final OverallStats overallStats = report.overallStats;
+
+        System.out.println();
+        final String title = "HDFS Summary : " + dir;
+        System.out.println(title);
+        System.out.println(FormatUtil.padRight('-', title.length()));
+        System.out.println();
+
+        // Overall
+        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(overallStats.fileSizeBuckets.computeBucketUpperBorders());
+        final int[] maxLength = FormatUtil.max(
+                FormatUtil.length(bucketUnits),
+                FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
+        final String bucketFormatValue = FormatUtil.formatForLengths(maxLength, "d");
+        final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
+        final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
+
+        System.out.println(
+                "#Groups  | #Users      | #Directories | #Files     | Size [MB] | #Blocks   | File Size Buckets ");
+        String header2ndLine =
+                "         |             |              |            |           |           | " + bucketHeader;
+        System.out.println(header2ndLine);
+        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+
+        System.out.println(String.format("%8d | %11d | %12d | %10d | %9d | %9d | %s",
+                report.groupStats.size(), report.userStats.size(),
+                overallStats.sumDirectories, overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
+                overallStats.sumBlocks,
+                String.format(bucketFormatValue, Arrays.stream(overallStats.fileSizeBuckets.get()).boxed().toArray())
+        ));
+        System.out.println();
+
+        // Groups
+        System.out.println(String.format(
+                "By group:     %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets",
+                report.groupStats.size()));
+        header2ndLine = "     " +
+                "                  |              |            |           |           | " + bucketHeader;
+        System.out.println(header2ndLine);
+        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+        for (GroupStats stat : sorted(report.groupStats.values(), options.sort)) {
+            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
+                    stat.groupName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumBlocks,
+                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
+            ));
+        }
+
+        // Users
+        System.out.println();
+        System.out.println(String.format(
+                "By user:      %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets",
+                report.userStats.size()));
+        header2ndLine = "     " +
+                "                  |              |            |           |           | " + bucketHeader;
+        System.out.println(header2ndLine);
+        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+        for (UserStats stat : sorted(report.userStats.values(), options.sort)) {
+            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
+                    stat.userName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumBlocks,
+                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
+            ));
+        }
+    }
+
+    private static Report computeReport(FSImageLoader loader, String dir) throws IOException {
+        final Report report = new Report();
+        final OverallStats overallStats = report.overallStats;
+
         loader.visit(new FsVisitor() {
             @Override
             public void onFile(FsImageProto.INodeSection.INode inode) {
@@ -76,14 +170,7 @@ public class HdfsFSImageTool {
 
                 // Group stats
                 final String groupName = p.getGroupName();
-                GroupStats groupStat;
-                if (groupStats.containsKey(groupName)) {
-                    groupStat = groupStats.get(groupName);
-                } else {
-                    groupStat = new GroupStats();
-                    groupStat.groupName = groupName;
-                    groupStats.put(groupName, groupStat);
-                }
+                GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                 groupStat.sumFiles++;
                 groupStat.sumFileSize += fileSize;
                 groupStat.fileSizeBuckets.add(fileSize);
@@ -91,14 +178,7 @@ public class HdfsFSImageTool {
 
                 // User stats
                 final String userName = p.getUserName();
-                UserStats user;
-                if (userStats.containsKey(userName)) {
-                    user = userStats.get(userName);
-                } else {
-                    user = new UserStats();
-                    user.userName = userName;
-                    userStats.put(userName, user);
-                }
+                UserStats user = report.getOrCreateUserStats(userName);
                 user.sumFiles++;
                 user.sumFileSize += fileSize;
                 user.fileSizeBuckets.add(fileSize);
@@ -127,26 +207,12 @@ public class HdfsFSImageTool {
 
                 // Group stats
                 final String groupName = p.getGroupName();
-                GroupStats groupStat;
-                if (groupStats.containsKey(groupName)) {
-                    groupStat = groupStats.get(groupName);
-                } else {
-                    groupStat = new GroupStats();
-                    groupStat.groupName = groupName;
-                    groupStats.put(groupName, groupStat);
-                }
+                GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                 groupStat.sumDirectories++;
 
                 // User stats
                 final String userName = p.getUserName();
-                UserStats user;
-                if (userStats.containsKey(userName)) {
-                    user = userStats.get(userName);
-                } else {
-                    user = new UserStats();
-                    user.userName = userName;
-                    userStats.put(userName, user);
-                }
+                UserStats user = report.getOrCreateUserStats(userName);
                 user.sumDirectories++;
 
                 overallStats.sumDirectories++;
@@ -168,101 +234,51 @@ public class HdfsFSImageTool {
             public void onSymLink(FsImageProto.INodeSection.INode inode) {
                 System.out.println("Symlink: " + inode.getName().toStringUtf8());
             }
-        });
-        log.info("Visiting finished.");
+        }, dir);
 
-        System.out.println();
-        System.out.println("HDFS Summary");
-        System.out.println("------------");
-        System.out.println();
-        // Overall
-        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(overallStats.fileSizeBuckets.getBucketSizedInBytes());
-        final int[] maxLength = FormatUtil.max(
-                FormatUtil.length(bucketUnits),
-                FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
-        final String bucketFormatValue = FormatUtil.formatForLengths(maxLength, "d");
-        final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
-        final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
-
-        System.out.println(
-                "#Groups  | #Users      | #Directories | #Files     | Size [MB] | #Blocks   | File Size Buckets ");
-        String header2ndLine =
-                "         |             |              |            |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-
-        System.out.println(String.format("%8d | %11d | %12d | %10d | %9d | %9d | %s",
-                groupStats.size(), userStats.size(),
-                overallStats.sumDirectories, overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
-                overallStats.sumBlocks,
-                String.format(bucketFormatValue, Arrays.stream(overallStats.fileSizeBuckets.get()).boxed().toArray())
-        ));
-        System.out.println();
-
-        // Groups
-        System.out.println(String.format(
-                "By group:     %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets", groupStats.size()));
-        header2ndLine = "     " +
-                "                  |              |            |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (GroupStats stat : sorted(groupStats.values(), options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
-                    stat.groupName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
-                    stat.sumBlocks,
-                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
-            ));
-        }
-
-        // Users
-        System.out.println();
-        System.out.println(String.format(
-                "By user:      %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets", userStats.size()));
-        header2ndLine = "     " +
-                "                  |              |            |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (UserStats stat : sorted(userStats.values(), options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
-                    stat.userName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
-                    stat.sumBlocks,
-                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
-            ));
-        }
+        return report;
     }
 
     private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
-        if(null==sortOption||sortOption.isEmpty()) {
-            return values;
+        switch (sortOption) {
+            case "fc":
+                return sortStats(values, new Comparator<T>() {
+                    @Override
+                    public int compare(AbstractStats o1, AbstractStats o2) {
+                        return Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles);
+                    }
+                });
+            case "fs": // default sort
+            default:
+                return sortStats(values, new Comparator<T>() {
+                    @Override
+                    public int compare(AbstractStats o1, AbstractStats o2) {
+                        return Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize);
+                    }
+                });
         }
+    }
 
+    private static <T extends AbstractStats> List<T> sortStats(Collection<T> values, Comparator<T> comparator) {
         final List<T> list = new ArrayList<T>(values);
-        if (sortOption.equals("fs")) {
-            list.sort(new Comparator<AbstractStats>() {
-                @Override
-                public int compare(AbstractStats o1, AbstractStats o2) {
-                    return Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize);
-                }
-            });
-        } else if (sortOption.equals("fc")) {
-            list.sort(new Comparator<AbstractStats>() {
-                @Override
-                public int compare(AbstractStats o1, AbstractStats o2) {
-                    return Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles);
-                }
-            });
-        }
+        list.sort(comparator);
         return list;
     }
 
     public static void main(String[] args) throws IOException {
-        Options options = new Options();
+        CliOptions options = new CliOptions();
         CommandLine commandLine = new CommandLine(options);
-        commandLine.parse(args);
-        if (options.helpRequested) {
-            commandLine.usage(System.out);
-        } else {
-            doPerform(options);
+        try {
+            commandLine.parse(args);
+            if (options.helpRequested) {
+                commandLine.usage(System.out);
+            } else {
+                doPerform(options);
+            }
+        } catch (CommandLine.ParameterException ex) {
+            System.err.println("Invalid options : " + ex.getMessage());
+            System.out.println();
+            commandLine.usage(System.err);
         }
     }
 
