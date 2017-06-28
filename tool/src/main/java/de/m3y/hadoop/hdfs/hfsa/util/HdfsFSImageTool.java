@@ -1,16 +1,16 @@
 package de.m3y.hadoop.hdfs.hfsa.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.*;
+
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import picocli.CommandLine;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -20,58 +20,40 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class HdfsFSImageTool {
     private static final Logger log = getLogger(HdfsFSImageTool.class);
 
+    abstract static class AbstractStats {
+        long sumFiles;
+        long sumDirectories;
+        long sumBlocks;
+        long sumFileSize;
+        final SizeBucket fileSizeBuckets = new SizeBucket();
+    }
 
-    static class UserStats {
+    static class UserStats extends AbstractStats {
         String userName;
-        long sumFiles;
-        long sumBlocks;
-        long sumFileSize;
-        long sumDirectories;
-        SizeBucket fileSizeBuckets = new SizeBucket();
-
-        @Override
-        public String toString() {
-            return "UserStats{" +
-                    "userName='" + userName + '\'' +
-                    ", numFiles=" + sumFiles +
-                    ", sumFileSize=" + sumFileSize +
-                    ", numDirectories=" + sumDirectories +
-                    ", fileSizeBuckets=" + fileSizeBuckets +
-                    '}';
-        }
     }
 
-    static class GroupStats {
+    static class GroupStats extends AbstractStats {
         String groupName;
-        long sumFiles;
-        long sumBlocks;
-        long sumFileSize;
-        long sumDirectories;
-        SizeBucket fileSizeBuckets = new SizeBucket();
-
-        @Override
-        public String toString() {
-            return "GroupStats{" +
-                    "groupName='" + groupName + '\'' +
-                    ", numFiles=" + sumFiles +
-                    ", sumFileSize=" + sumFileSize +
-                    ", numDirectories=" + sumDirectories +
-                    ", fileSizeBuckets=" + fileSizeBuckets +
-                    '}';
-        }
     }
 
-    static class OverallStats {
-        long sumFiles;
-        long sumDirectories;
-        long sumBlocks;
-        long sumFileSize;
-        final SizeBucket sizeBucket = new SizeBucket();
+    static class OverallStats extends AbstractStats {
     }
 
+    public static class Options {
+        @CommandLine.Option(names = {"-h", "--help"}, help = true,
+                description = "Displays this help message and quits.")
+        private boolean helpRequested = false;
 
-    public static void main(String[] args) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(args[0], "r");
+        @CommandLine.Option(names = {"-s", "--sort"}, help = true,
+                description = "Sort by (fs) file size, (fc) file count.")
+        private String sort;
+
+        @CommandLine.Parameters(arity = "1", paramLabel = "FILE", description = "FSImage file to process.")
+        private File fsImageFile;
+    }
+
+    static void doPerform(Options options) throws IOException {
+        RandomAccessFile file = new RandomAccessFile(options.fsImageFile, "r");
         final FSImageLoader loader = FSImageLoader.load(file);
 
         final Map<String, GroupStats> groupStats = new HashMap<>();
@@ -87,7 +69,7 @@ public class HdfsFSImageTool {
 
                 final long fileSize = FSImageLoader.getFileSize(f);
                 final long fileBlocks = f.getBlocksCount();
-                overallStats.sizeBucket.add(fileSize);
+                overallStats.fileSizeBuckets.add(fileSize);
                 overallStats.sumBlocks += fileBlocks;
                 overallStats.sumFileSize += fileSize;
                 overallStats.sumFiles++;
@@ -194,36 +176,40 @@ public class HdfsFSImageTool {
         System.out.println("------------");
         System.out.println();
         // Overall
-        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(overallStats.sizeBucket.getBucketSizedInBytes());
+        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(overallStats.fileSizeBuckets.getBucketSizedInBytes());
         final int[] maxLength = FormatUtil.max(
                 FormatUtil.length(bucketUnits),
-                FormatUtil.numberOfDigits(overallStats.sizeBucket.get()));
+                FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
         final String bucketFormatValue = FormatUtil.formatForLengths(maxLength, "d");
         final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
-        final String bucketHeader = String.format(bucketFormatHeader, (Object[])bucketUnits);
+        final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
 
         System.out.println(
-                "#Files     | #Blocks  | Size [MB] | #Dirs     | #Groups | #Users | File Size Buckets ");
-        String header2ndLine = "           |          |           |           |         |        | " + bucketHeader;
-        System.out.println( header2ndLine );
+                "#Groups  | #Users      | #Directories | #Files     | Size [MB] | #Blocks   | File Size Buckets ");
+        String header2ndLine =
+                "         |             |              |            |           |           | " + bucketHeader;
+        System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
 
-        System.out.println(String.format("%10d | %8d | %9d | %9d | %7d | %6d | %s",
-                overallStats.sumFiles, overallStats.sumBlocks, overallStats.sumFileSize / 1024L / 1024L,
-                overallStats.sumDirectories, groupStats.size(), userStats.size(),
-                String.format(bucketFormatValue, Arrays.stream(overallStats.sizeBucket.get()).boxed().toArray())
+        System.out.println(String.format("%8d | %11d | %12d | %10d | %9d | %9d | %s",
+                groupStats.size(), userStats.size(),
+                overallStats.sumDirectories, overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
+                overallStats.sumBlocks,
+                String.format(bucketFormatValue, Arrays.stream(overallStats.fileSizeBuckets.get()).boxed().toArray())
         ));
         System.out.println();
 
         // Groups
         System.out.println(String.format(
-                "By group:     %8d | #Directories | #File   | Size [MB] | File Size Buckets", groupStats.size()));
-        header2ndLine = "                       |              |         |           | " + bucketHeader;
+                "By group:     %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets", groupStats.size()));
+        header2ndLine = "     " +
+                "                  |              |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (GroupStats stat : groupStats.values()) {
-            System.out.println(String.format("%22s |   %10d | %7d | %9d | %s",
+        for (GroupStats stat : sorted(groupStats.values(), options.sort)) {
+            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
                     stat.groupName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumBlocks,
                     String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
             ));
         }
@@ -231,15 +217,52 @@ public class HdfsFSImageTool {
         // Users
         System.out.println();
         System.out.println(String.format(
-                "By user:      %8d | #Directories | #File   | Size [MB] | File Size Buckets", userStats.size()));
-        header2ndLine = "                       |              |         |           | " + bucketHeader;
+                "By user:      %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets", userStats.size()));
+        header2ndLine = "     " +
+                "                  |              |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (UserStats stat : userStats.values()) {
-            System.out.println(String.format("%22s |   %10d | %7d | %9d | %s",
+        for (UserStats stat : sorted(userStats.values(), options.sort)) {
+            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
                     stat.userName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumBlocks,
                     String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
             ));
+        }
+    }
+
+    private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
+        if(null==sortOption||sortOption.isEmpty()) {
+            return values;
+        }
+
+        final List<T> list = new ArrayList<T>(values);
+        if (sortOption.equals("fs")) {
+            list.sort(new Comparator<AbstractStats>() {
+                @Override
+                public int compare(AbstractStats o1, AbstractStats o2) {
+                    return Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize);
+                }
+            });
+        } else if (sortOption.equals("fc")) {
+            list.sort(new Comparator<AbstractStats>() {
+                @Override
+                public int compare(AbstractStats o1, AbstractStats o2) {
+                    return Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles);
+                }
+            });
+        }
+        return list;
+    }
+
+    public static void main(String[] args) throws IOException {
+        Options options = new Options();
+        CommandLine commandLine = new CommandLine(options);
+        commandLine.parse(args);
+        if (options.helpRequested) {
+            commandLine.usage(System.out);
+        } else {
+            doPerform(options);
         }
     }
 
