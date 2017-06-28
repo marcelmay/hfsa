@@ -19,7 +19,7 @@ TODO: Example
 ### TODO
 
 It's an initial, drafty version.
-- Doku
+- Documentation
 - Deployment to Maven repo
 - symlinks summary
 - error handling and cli options for tool
@@ -43,6 +43,6 @@ You may obtain a copy of the License at
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-    ```
+```
 
 Contains work derived from Apache Hadoop.
