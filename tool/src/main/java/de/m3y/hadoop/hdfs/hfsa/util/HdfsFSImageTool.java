@@ -3,6 +3,7 @@ package de.m3y.hadoop.hdfs.hfsa.util;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
@@ -24,30 +25,47 @@ public class HdfsFSImageTool {
         long sumDirectories;
         long sumBlocks;
         long sumFileSize;
-        final SizeBucket fileSizeBuckets = new SizeBucket();
+        final SizeBucket fileSizeBuckets;
+
+        protected AbstractStats() {
+            fileSizeBuckets = new SizeBucket();
+        }
     }
 
     static class UserStats extends AbstractStats {
-        String userName;
+        final String userName;
+
+        UserStats(String userName) {
+            this.userName = userName;
+        }
     }
 
     static class GroupStats extends AbstractStats {
-        String groupName;
+        final String groupName;
+
+        GroupStats(String groupName) {
+            this.groupName = groupName;
+        }
     }
 
     static class OverallStats extends AbstractStats {
     }
 
     static class Report {
-        final Map<String, GroupStats> groupStats = new HashMap<>();
-        final Map<String, UserStats> userStats = new HashMap<>();
-        final OverallStats overallStats = new OverallStats();
+        final Map<String, GroupStats> groupStats;
+        final Map<String, UserStats> userStats;
+        final OverallStats overallStats;
+
+        Report() {
+            groupStats = new HashMap<>();
+            userStats = new HashMap<>();
+            overallStats = new OverallStats();
+        }
 
         GroupStats getOrCreateGroupStats(String groupName) {
             GroupStats stat = groupStats.get(groupName);
             if (null == stat) {
-                stat = new GroupStats();
-                stat.groupName = groupName;
+                stat = new GroupStats(groupName);
                 groupStats.put(groupName, stat);
             }
             return stat;
@@ -56,8 +74,7 @@ public class HdfsFSImageTool {
         UserStats getOrCreateUserStats(String userName) {
             UserStats stat = userStats.get(userName);
             if (null == stat) {
-                stat = new UserStats();
-                stat.userName = userName;
+                stat = new UserStats(userName);
                 userStats.put(userName, stat);
             }
             return stat;
@@ -84,6 +101,7 @@ public class HdfsFSImageTool {
         final Report report = computeReport(loader, dir);
         LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
 
+        // Overall
         final OverallStats overallStats = report.overallStats;
 
         System.out.println();
@@ -134,20 +152,31 @@ public class HdfsFSImageTool {
 
         // Users
         System.out.println();
+        final List<UserStats> userStats = filter(report.userStats.values(), options);
         System.out.println(String.format(
                 "By user:      %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets",
-                report.userStats.size()));
+                userStats.size()));
         header2ndLine = "     " +
                 "                  |              |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (UserStats stat : sorted(report.userStats.values(), options.sort)) {
+        for (UserStats stat : sorted(userStats, options.sort)) {
             System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
                     stat.userName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
             ));
         }
+    }
+
+    static List<UserStats> filter(Collection<UserStats> userStats, CliOptions options) {
+        List<UserStats> filtered = new ArrayList<>(userStats);
+        // user name
+        if(null != options.userFilter && !options.userFilter.isEmpty()) {
+            Pattern userNamePattern = Pattern.compile(options.userFilter);
+            filtered.removeIf(u -> !userNamePattern.matcher(u.userName).find());
+        }
+        return filtered;
     }
 
     private static Report computeReport(FSImageLoader loader, String dir) throws IOException {
@@ -241,6 +270,13 @@ public class HdfsFSImageTool {
 
     private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
         switch (sortOption) {
+            case "bc":
+                return sortStats(values, new Comparator<T>() {
+                    @Override
+                    public int compare(AbstractStats o1, AbstractStats o2) {
+                        return Long.valueOf(o1.sumBlocks).compareTo(o2.sumBlocks);
+                    }
+                });
             case "fc":
                 return sortStats(values, new Comparator<T>() {
                     @Override
@@ -248,14 +284,22 @@ public class HdfsFSImageTool {
                         return Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles);
                     }
                 });
+            case "dc":
+                return sortStats(values, new Comparator<T>() {
+                    @Override
+                    public int compare(AbstractStats o1, AbstractStats o2) {
+                        return Long.valueOf(o1.sumDirectories).compareTo(o2.sumDirectories);
+                    }
+                });
             case "fs": // default sort
-            default:
                 return sortStats(values, new Comparator<T>() {
                     @Override
                     public int compare(AbstractStats o1, AbstractStats o2) {
                         return Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize);
                     }
                 });
+            default:
+                throw new IllegalArgumentException("Unsupported sort option "+sortOption);
         }
     }
 

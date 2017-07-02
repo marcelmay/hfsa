@@ -14,8 +14,12 @@ class CliOptions {
     boolean helpRequested = false;
 
     @CommandLine.Option(names = {"-s", "--sort"}, help = true,
-            description = "Sort by (fs) file size [default], (fc) file count.")
-    String sort;
+            description = "Sort by <fs> size (default), <fc> file count, <dc> directory count or <bc> block count.")
+    String sort = "fs";
+
+    @CommandLine.Option(names = {"-fun", "--filter-by-user"}, help = true,
+            description = "Filter user name by <regexp>.")
+    String userFilter;
 
     @CommandLine.Parameters(arity = "1", paramLabel = "FILE", index = "0",
             description = "FSImage file to process.")
