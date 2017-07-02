@@ -1,4 +1,4 @@
-package de.m3y.hadoop.hdfs.hfsa.util;
+package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
+import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.slf4j.Logger;

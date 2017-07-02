@@ -1,4 +1,4 @@
-package de.m3y.hadoop.hdfs.hfsa.util;
+package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.io.File;
 

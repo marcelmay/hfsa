@@ -1,4 +1,6 @@
-package de.m3y.hadoop.hdfs.hfsa.util;
+package de.m3y.hadoop.hdfs.hfsa.tool;
+
+import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 
 /**
  * Helps formatting output.
