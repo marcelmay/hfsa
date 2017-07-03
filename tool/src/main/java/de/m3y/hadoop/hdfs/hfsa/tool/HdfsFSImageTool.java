@@ -28,7 +28,7 @@ public class HdfsFSImageTool {
         long sumFileSize;
         final SizeBucket fileSizeBuckets;
 
-        protected AbstractStats() {
+        AbstractStats() {
             fileSizeBuckets = new SizeBucket();
         }
     }
@@ -56,19 +56,25 @@ public class HdfsFSImageTool {
         final Map<String, GroupStats> groupStats;
         final Map<String, UserStats> userStats;
         final OverallStats overallStats;
+        final String dirPath;
 
-        Report() {
+        Report(String dirPath) {
+            this.dirPath = dirPath;
             groupStats = new HashMap<>();
             userStats = new HashMap<>();
             overallStats = new OverallStats();
         }
 
         GroupStats getOrCreateGroupStats(String groupName) {
-            return groupStats.computeIfAbsent(groupName, GroupStats::new);
+            synchronized (groupStats) {
+                return groupStats.computeIfAbsent(groupName, GroupStats::new);
+            }
         }
 
         UserStats getOrCreateUserStats(String userName) {
-            return userStats.computeIfAbsent(userName, UserStats::new);
+            synchronized (userStats) {
+                return userStats.computeIfAbsent(userName, UserStats::new);
+            }
         }
     }
 
@@ -82,27 +88,28 @@ public class HdfsFSImageTool {
         }
 
         for (String dir : options.dirs) {
-            doSummary(options, loader, dir);
+            LOG.info("Visting " + dir + " ...");
+            long start = System.currentTimeMillis();
+            final Report report = computeReport(loader, dir);
+            LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
+
+            doSummary(options, report);
         }
     }
 
-    private static void doSummary(CliOptions options, FSImageLoader loader, String dir) throws IOException {
-        LOG.info("Visting " + dir + " ...");
-        long start = System.currentTimeMillis();
-        final Report report = computeReport(loader, dir);
-        LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
-
+    static void doSummary(CliOptions options, Report report) throws IOException {
         // Overall
         final OverallStats overallStats = report.overallStats;
 
         System.out.println();
-        final String title = "HDFS Summary : " + dir;
+        final String title = "HDFS Summary : " + report.dirPath;
         System.out.println(title);
         System.out.println(FormatUtil.padRight('-', title.length()));
         System.out.println();
 
         // Overall
-        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(overallStats.fileSizeBuckets.computeBucketUpperBorders());
+        final String[] bucketUnits = FormatUtil.toStringSizeFormatted(
+                overallStats.fileSizeBuckets.computeBucketUpperBorders());
         final int[] maxLength = FormatUtil.max(
                 FormatUtil.length(bucketUnits),
                 FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
@@ -170,11 +177,11 @@ public class HdfsFSImageTool {
         return filtered;
     }
 
-    private static Report computeReport(FSImageLoader loader, String dir) throws IOException {
-        final Report report = new Report();
+    static Report computeReport(FSImageLoader loader, String dirPath) throws IOException {
+        final Report report = new Report(dirPath);
         final OverallStats overallStats = report.overallStats;
 
-        loader.visit(new FsVisitor() {
+        loader.visitParallel(new FsVisitor() {
             @Override
             public void onFile(FsImageProto.INodeSection.INode inode) {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
@@ -183,41 +190,32 @@ public class HdfsFSImageTool {
 
                 final long fileSize = FSImageLoader.getFileSize(f);
                 final long fileBlocks = f.getBlocksCount();
-                overallStats.fileSizeBuckets.add(fileSize);
-                overallStats.sumBlocks += fileBlocks;
-                overallStats.sumFileSize += fileSize;
-                overallStats.sumFiles++;
+                synchronized (overallStats) {
+                    overallStats.fileSizeBuckets.add(fileSize);
+                    overallStats.sumBlocks += fileBlocks;
+                    overallStats.sumFileSize += fileSize;
+                    overallStats.sumFiles++;
+                }
 
                 // Group stats
                 final String groupName = p.getGroupName();
-                GroupStats groupStat = report.getOrCreateGroupStats(groupName);
-                groupStat.sumFiles++;
-                groupStat.sumFileSize += fileSize;
-                groupStat.fileSizeBuckets.add(fileSize);
-                groupStat.sumBlocks += fileBlocks;
+                final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
+                synchronized (groupStat) {
+                    groupStat.sumFiles++;
+                    groupStat.sumFileSize += fileSize;
+                    groupStat.fileSizeBuckets.add(fileSize);
+                    groupStat.sumBlocks += fileBlocks;
+                }
 
                 // User stats
                 final String userName = p.getUserName();
-                UserStats user = report.getOrCreateUserStats(userName);
-                user.sumFiles++;
-                user.sumFileSize += fileSize;
-                user.fileSizeBuckets.add(fileSize);
-                user.sumBlocks += fileBlocks;
-
-                overallStats.sumFiles++;
-
-//                map.put("accessTime", f.getAccessTime());
-//                map.put("blockSize", f.getPreferredBlockSize());
-//                map.put("group", p.getGroupName());
-//                map.put("length", FSImageLoader.getFileSize(f));
-//                map.put("modificationTime", f.getModificationTime());
-//                map.put("owner", p.getUserName());
-//                map.put("pathSuffix",inode.getName().toStringUtf8());
-//                map.put("permission", FSImageLoader.toString(p.getPermission()));
-//                map.put("replication", f.getReplication());
-//                map.put("type", inode.getType());
-//                map.put("fileId", inode.getId());
-//                map.put("childrenNum", 0);
+                final UserStats userStat = report.getOrCreateUserStats(userName);
+                synchronized (userStat) {
+                    userStat.sumFiles++;
+                    userStat.sumFileSize += fileSize;
+                    userStat.fileSizeBuckets.add(fileSize);
+                    userStat.sumBlocks += fileBlocks;
+                }
             }
 
             @Override
@@ -227,34 +225,28 @@ public class HdfsFSImageTool {
 
                 // Group stats
                 final String groupName = p.getGroupName();
-                GroupStats groupStat = report.getOrCreateGroupStats(groupName);
-                groupStat.sumDirectories++;
+                final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
+                synchronized (groupStat) {
+                    groupStat.sumDirectories++;
+                }
 
                 // User stats
                 final String userName = p.getUserName();
-                UserStats user = report.getOrCreateUserStats(userName);
-                user.sumDirectories++;
+                final UserStats userStat = report.getOrCreateUserStats(userName);
+                synchronized (userStat) {
+                    userStat.sumDirectories++;
+                }
 
-                overallStats.sumDirectories++;
-//                map.put("accessTime", 0);
-//                map.put("blockSize", 0);
-//                map.put("group", p.getGroupName());
-//                map.put("length", 0);
-//                map.put("modificationTime", d.getModificationTime());
-//                map.put("owner", p.getUserName());
-//                map.put("pathSuffix",inode.getName().toStringUtf8());
-//                map.put("permission", FSImageLoader.toString(p.getPermission()));
-//                map.put("replication", 0);
-//                map.put("type", inode.getType());
-//                map.put("fileId", inode.getId());
-//                map.put("childrenNum", loader.getNumChildren(inode);
+                synchronized (overallStats) {
+                    overallStats.sumDirectories++;
+                }
             }
 
             @Override
             public void onSymLink(FsImageProto.INodeSection.INode inode) {
-                System.out.println("Symlink: " + inode.getName().toStringUtf8());
+                System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
             }
-        }, dir);
+        }, dirPath);
 
         return report;
     }
@@ -275,7 +267,7 @@ public class HdfsFSImageTool {
     }
 
     private static <T extends AbstractStats> List<T> sortStats(Collection<T> values, Comparator<T> comparator) {
-        final List<T> list = new ArrayList<T>(values);
+        final List<T> list = new ArrayList<>(values);
         list.sort(comparator);
         return list;
     }
