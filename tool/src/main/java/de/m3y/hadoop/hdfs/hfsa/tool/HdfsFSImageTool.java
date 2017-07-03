@@ -64,21 +64,11 @@ public class HdfsFSImageTool {
         }
 
         GroupStats getOrCreateGroupStats(String groupName) {
-            GroupStats stat = groupStats.get(groupName);
-            if (null == stat) {
-                stat = new GroupStats(groupName);
-                groupStats.put(groupName, stat);
-            }
-            return stat;
+            return groupStats.computeIfAbsent(groupName, GroupStats::new);
         }
 
         UserStats getOrCreateUserStats(String userName) {
-            UserStats stat = userStats.get(userName);
-            if (null == stat) {
-                stat = new UserStats(userName);
-                userStats.put(userName, stat);
-            }
-            return stat;
+            return userStats.computeIfAbsent(userName, UserStats::new);
         }
     }
 
@@ -173,7 +163,7 @@ public class HdfsFSImageTool {
     static List<UserStats> filter(Collection<UserStats> userStats, CliOptions options) {
         List<UserStats> filtered = new ArrayList<>(userStats);
         // user name
-        if(null != options.userFilter && !options.userFilter.isEmpty()) {
+        if (null != options.userFilter && !options.userFilter.isEmpty()) {
             Pattern userNamePattern = Pattern.compile(options.userFilter);
             filtered.removeIf(u -> !userNamePattern.matcher(u.userName).find());
         }
@@ -272,35 +262,15 @@ public class HdfsFSImageTool {
     private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
         switch (sortOption) {
             case "bc":
-                return sortStats(values, new Comparator<T>() {
-                    @Override
-                    public int compare(AbstractStats o1, AbstractStats o2) {
-                        return Long.valueOf(o1.sumBlocks).compareTo(o2.sumBlocks);
-                    }
-                });
+                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumBlocks).compareTo(o2.sumBlocks));
             case "fc":
-                return sortStats(values, new Comparator<T>() {
-                    @Override
-                    public int compare(AbstractStats o1, AbstractStats o2) {
-                        return Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles);
-                    }
-                });
+                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles));
             case "dc":
-                return sortStats(values, new Comparator<T>() {
-                    @Override
-                    public int compare(AbstractStats o1, AbstractStats o2) {
-                        return Long.valueOf(o1.sumDirectories).compareTo(o2.sumDirectories);
-                    }
-                });
+                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumDirectories).compareTo(o2.sumDirectories));
             case "fs": // default sort
-                return sortStats(values, new Comparator<T>() {
-                    @Override
-                    public int compare(AbstractStats o1, AbstractStats o2) {
-                        return Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize);
-                    }
-                });
+                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize));
             default:
-                throw new IllegalArgumentException("Unsupported sort option "+sortOption);
+                throw new IllegalArgumentException("Unsupported sort option " + sortOption);
         }
     }
 

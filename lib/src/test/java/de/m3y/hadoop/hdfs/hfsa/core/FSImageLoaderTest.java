@@ -1,28 +1,24 @@
 package de.m3y.hadoop.hdfs.hfsa.core;
 
 
-import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.hadoop.fs.permission.PermissionStatus;
+import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 
 public class FSImageLoaderTest {
-    private static final Logger log = LoggerFactory.getLogger(FSImageLoaderTest.class);
-
-    Set<String> groupNames = new HashSet<>();
-    Set<String> userNames = new HashSet<>();
-    int sumFiles;
-    int sumDirs;
-    int sumSymLinks;
-    long sumSize;
+    private Set<String> groupNames = new HashSet<>();
+    private Set<String> userNames = new HashSet<>();
+    private int sumFiles;
+    private int sumDirs;
+    private int sumSymLinks;
+    private long sumSize;
 
     @Test
     public void testLoadAndVisit() throws IOException {
