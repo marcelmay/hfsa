@@ -3,6 +3,7 @@ package de.m3y.hadoop.hdfs.hfsa.core;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,6 +12,7 @@ import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class FSImageLoaderTest {
     private Set<String> groupNames = new HashSet<>();
@@ -25,10 +27,12 @@ public class FSImageLoaderTest {
         RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
         final FSImageLoader loader = FSImageLoader.load(file);
 
+        Set<String> paths = new HashSet<>();
 
         loader.visit(new FsVisitor() {
             @Override
-            public void onFile(FsImageProto.INodeSection.INode inode) {
+            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+                paths.add(path);
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
 
                 PermissionStatus p = loader.getPermissionStatus(f.getPermission());
@@ -39,8 +43,8 @@ public class FSImageLoaderTest {
             }
 
             @Override
-            public void onDirectory(FsImageProto.INodeSection.INode inode) {
-//                System.out.println("D: " + inode.getName().toStringUtf8());
+            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                paths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 PermissionStatus p = loader.getPermissionStatus(d.getPermission());
                 groupNames.add(p.getGroupName());
@@ -49,7 +53,8 @@ public class FSImageLoaderTest {
             }
 
             @Override
-            public void onSymLink(FsImageProto.INodeSection.INode inode) {
+            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                paths.add(path);
                 sumSymLinks++;
             }
         });
@@ -60,6 +65,10 @@ public class FSImageLoaderTest {
         assertEquals(10, sumFiles);
         assertEquals(0, sumSymLinks);
         assertEquals(348017664L, sumSize);
+        Set<String> expectedPaths = new HashSet<>(Arrays.asList(
+                "/", "/test1", "/test2", "/test3", "/test3/foo", "/test3/foo/bar", "/user", "/user/mm"));
+        assertTrue(paths.containsAll(expectedPaths));
+        assertTrue(expectedPaths.containsAll(paths));
     }
 
 }

@@ -10,16 +10,33 @@ import java.util.Arrays;
 public class SizeBucket {
     private long[] fileSizeBuckets;
 
-    public long[] computeBucketUpperBorders() {
-        return getBucketModel().computeBucketUpperBorders(findMaxNumBucket());
-    }
-
+    /**
+     * Allows different kind of buckets, eg fixed size or exponential ones.
+     */
     public interface BucketModel {
-        abstract int computeBucket(long size);
+        /**
+         * Computes the bucket index for given value.
+         *
+         * @param size the value.
+         * @return the bucket for this value.
+         */
+        int computeBucket(long size);
 
-        abstract long[] computeBucketUpperBorders(int maxNumBuckets);
+        /**
+         * Computes the bucket upper borders.
+         * Useful for printing out the buckets.
+         *
+         * @param maxNumBuckets the maximum number of buckets.
+         * @return the bucket upper borders.
+         */
+        long[] computeBucketUpperBorders(int maxNumBuckets);
 
-        abstract int getInitialNumberOfBuckets();
+        /**
+         * Gets the initial number of buckets.
+         *
+         * @return the number of buckets.
+         */
+        int getInitialNumberOfBuckets();
     }
 
     /**
@@ -55,7 +72,7 @@ public class SizeBucket {
          */
         @Override
         public long[] computeBucketUpperBorders(int maxNumBuckets) {
-            long sizes[] = new long[maxNumBuckets + 1];
+            long[] sizes = new long[maxNumBuckets + 1];
             sizes[0] = 0L;           // 0 B
             sizes[1] = 1024L * 1024; // 1 MiB
             for (int i = 2; i < sizes.length; i++) {
@@ -96,6 +113,16 @@ public class SizeBucket {
         fileSizeBuckets[bucket]++;
     }
 
+
+    /**
+     * Computes the bucket upper borders, for the max number filled of buckets.
+     *
+     * @return the upper bucket borders.
+     */
+    public long[] computeBucketUpperBorders() {
+        return getBucketModel().computeBucketUpperBorders(findMaxNumBucket());
+    }
+
     /**
      * Finds the number of filled buckets.
      *
@@ -113,8 +140,7 @@ public class SizeBucket {
 
     long findMaxBucketSizeEntry() {
         long max = 0;
-        for (int i = 0; i < fileSizeBuckets.length; i++) {
-            final long numBucketEntries = fileSizeBuckets[i];
+        for (final long numBucketEntries : fileSizeBuckets) {
             if (max < numBucketEntries) {
                 max = numBucketEntries;
             }
@@ -129,7 +155,7 @@ public class SizeBucket {
      * @param bucket index
      * @return the bucket counter.
      */
-    public long get(int bucket) {
+    public long getBucketCounter(int bucket) {
         return fileSizeBuckets[bucket];
     }
 
@@ -151,6 +177,11 @@ public class SizeBucket {
         return fileSizeBuckets.length;
     }
 
+    /**
+     * Gets the bucket model.
+     *
+     * @return the model.
+     */
     public BucketModel getBucketModel() {
         return bucketModel;
     }

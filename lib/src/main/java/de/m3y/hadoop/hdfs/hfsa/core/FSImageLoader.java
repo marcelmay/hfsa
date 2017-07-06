@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.server.namenode.*;
-import org.apache.hadoop.hdfs.web.JsonUtil;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.LimitInputStream;
 import org.slf4j.Logger;
@@ -75,7 +74,8 @@ public class FSImageLoader {
                 }
             };
 
-    static class SectionComparator implements Comparator<FsImageProto.FileSummary.Section> {
+    private static final SectionComparator SECTION_COMPARATOR = new SectionComparator();
+    private static class SectionComparator implements Comparator<FsImageProto.FileSummary.Section> {
         @Override
         public int compare(FsImageProto.FileSummary.Section s1,
                            FsImageProto.FileSummary.Section s2) {
@@ -125,7 +125,7 @@ public class FSImageLoader {
 
             ArrayList<FsImageProto.FileSummary.Section> sections =
                     Lists.newArrayList(summary.getSectionsList());
-            Collections.sort(sections, new SectionComparator());
+            sections.sort(SECTION_COMPARATOR);
 
             for (FsImageProto.FileSummary.Section s : sections) {
                 fin.getChannel().position(s.getOffset());
@@ -160,7 +160,8 @@ public class FSImageLoader {
     private static Map<Long, long[]> loadINodeDirectorySection
             (InputStream in, List<Long> refIdList)
             throws IOException {
-        LOG.info("Loading inode directory section");
+        LOG.info("Loading inode directory section ...");
+        long start = System.currentTimeMillis();
         Map<Long, long[]> dirs = Maps.newHashMap();
         long counter = 0;
         while (true) {
@@ -182,7 +183,7 @@ public class FSImageLoader {
             }
             dirs.put(e.getParent(), l);
         }
-        LOG.info("Loaded " + counter + " directories");
+        LOG.info("Loaded " + counter + " directories [" + (System.currentTimeMillis() - start) + "ms]");
         return dirs;
     }
 
@@ -201,7 +202,7 @@ public class FSImageLoader {
             ++counter;
             builder.add(e.getReferredId());
         }
-        LOG.info("Loaded " + counter + " inode references");
+        LOG.info("Loaded {} inode references", counter);
         return builder.build();
     }
 
@@ -221,7 +222,7 @@ public class FSImageLoader {
         LOG.debug("Sorting inodes");
         long start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
-        LOG.info("Finished sorting inodes [" + (System.currentTimeMillis() - start) + "ms]");
+        LOG.info("Finished sorting inodes [{}ms]", System.currentTimeMillis() - start );
         return inodes;
     }
 
@@ -237,27 +238,6 @@ public class FSImageLoader {
             stringTable[e.getId()] = e.getStr();
         }
         return stringTable;
-    }
-
-
-    List<Map<String, Object>> getFileStatusList(String path)
-            throws IOException {
-        long id = lookup(path);
-        FsImageProto.INodeSection.INode inode = fromINodeId(id);
-        if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
-            if (!dirmap.containsKey(id)) {
-                // if the directory is empty, return empty list
-                return Collections.emptyList();
-            }
-            long[] children = dirmap.get(id);
-            List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-            for (long cid : children) {
-                list.add(getFileStatus(fromINodeId(cid), true));
-            }
-            return list;
-        } else {
-            return Collections.singletonList(getFileStatus(inode, false));
-        }
     }
 
     /**
@@ -279,7 +259,7 @@ public class FSImageLoader {
      */
     public void visit(FsVisitor visitor, String path) throws IOException {
         final long nodeId = lookup(path);
-        visit(visitor, nodeId);
+        visit(visitor, nodeId, path);
     }
 
     /**
@@ -302,7 +282,7 @@ public class FSImageLoader {
     public void visitParallel(FsVisitor visitor, String path) throws IOException {
         final long rootNodeId = lookup(path);
         FsImageProto.INodeSection.INode rootNode = fromINodeId(rootNodeId);
-        visitor.onDirectory(rootNode);
+        visitor.onDirectory(rootNode, path);
         if (dirmap.containsKey(rootNodeId)) {
             long[] children = dirmap.get(rootNodeId);
             List<Long> dirs = new ArrayList<>();
@@ -311,12 +291,12 @@ public class FSImageLoader {
                 if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                     dirs.add(cid);
                 } else {
-                    visit(visitor, cid);
+                    visit(visitor, cid, ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
                 }
             }
             dirs.parallelStream().forEach(nodeId -> {
                 try {
-                    visit(visitor, nodeId);
+                    visit(visitor, nodeId, path);
                 } catch (IOException e) {
                     LOG.error("Can not traverse " + nodeId, e);
                 }
@@ -324,20 +304,26 @@ public class FSImageLoader {
         }
     }
 
-    void visit(FsVisitor visitor, long nodeId) throws IOException {
+    void visit(FsVisitor visitor, long nodeId, String path) throws IOException {
         FsImageProto.INodeSection.INode inode = fromINodeId(nodeId);
         if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
-            visitor.onDirectory(inode);
+            visitor.onDirectory(inode, path);
             if (dirmap.containsKey(nodeId)) {
+                String newPath;
+                if ("/".equals(path)) {
+                    newPath = path + inode.getName().toStringUtf8();
+                } else {
+                    newPath = path + '/' + inode.getName().toStringUtf8();
+                }
                 long[] children = dirmap.get(nodeId);
                 for (long cid : children) {
-                    visit(visitor, cid);
+                    visit(visitor, cid, newPath);
                 }
             }
         } else if (inode.getType() == FsImageProto.INodeSection.INode.Type.FILE) {
-            visitor.onFile(inode);
+            visitor.onFile(inode, path);
         } else if (inode.getType() == FsImageProto.INodeSection.INode.Type.SYMLINK) {
-            visitor.onSymLink(inode);
+            visitor.onSymLink(inode, path);
         } else {
             // Should not happen
             throw new IllegalStateException("Unsupported inode type " + inode.getType() + " for " + inode);
@@ -351,7 +337,7 @@ public class FSImageLoader {
      * @return JSON formatted AclStatus
      * @throws IOException if failed to serialize fileStatus to JSON.
      */
-    String getAclStatus(String path) throws IOException {
+    public AclStatus getAclStatus(String path) throws IOException {
         PermissionStatus p = getPermissionStatus(path);
         List<AclEntry> aclEntryList = getAclEntryList(path);
         FsPermission permission = p.getPermission();
@@ -359,8 +345,7 @@ public class FSImageLoader {
         builder.owner(p.getUserName()).group(p.getGroupName())
                 .addEntries(aclEntryList).setPermission(permission)
                 .stickyBit(permission.getStickyBit());
-        AclStatus aclStatus = builder.build();
-        return JsonUtil.toJsonString(aclStatus);
+        return builder.build();
     }
 
     private List<AclEntry> getAclEntryList(String path) throws IOException {
@@ -378,12 +363,12 @@ public class FSImageLoader {
                         d.getAcl(), stringTable);
             }
             default: {
-                return new ArrayList<AclEntry>();
+                return new ArrayList<>();
             }
         }
     }
 
-    private PermissionStatus getPermissionStatus(String path) throws IOException {
+    public PermissionStatus getPermissionStatus(String path) throws IOException {
         long id = lookup(path);
         FsImageProto.INodeSection.INode inode = fromINodeId(id);
         switch (inode.getType()) {
@@ -454,74 +439,6 @@ public class FSImageLoader {
         return FSImageFormatPBINode.Loader.loadPermission(permission, stringTable);
     }
 
-    public Map<String, Object> getFileStatus
-            (FsImageProto.INodeSection.INode inode, boolean printSuffix) {
-        Map<String, Object> map = Maps.newHashMap();
-        switch (inode.getType()) {
-            case FILE: {
-                FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                PermissionStatus p = FSImageFormatPBINode.Loader.loadPermission(
-                        f.getPermission(), stringTable);
-                map.put("accessTime", f.getAccessTime());
-                map.put("blockSize", f.getPreferredBlockSize());
-                map.put("group", p.getGroupName());
-                map.put("length", getFileSize(f));
-                map.put("modificationTime", f.getModificationTime());
-                map.put("owner", p.getUserName());
-                map.put("pathSuffix",
-                        printSuffix ? inode.getName().toStringUtf8() : "");
-                map.put("permission", toString(p.getPermission()));
-                map.put("replication", f.getReplication());
-                map.put("type", inode.getType());
-                map.put("fileId", inode.getId());
-                map.put("childrenNum", 0);
-                return map;
-            }
-            case DIRECTORY: {
-                FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                PermissionStatus p = FSImageFormatPBINode.Loader.loadPermission(
-                        d.getPermission(), stringTable);
-                map.put("accessTime", 0);
-                map.put("blockSize", 0);
-                map.put("group", p.getGroupName());
-                map.put("length", 0);
-                map.put("modificationTime", d.getModificationTime());
-                map.put("owner", p.getUserName());
-                map.put("pathSuffix",
-                        printSuffix ? inode.getName().toStringUtf8() : "");
-                map.put("permission", toString(p.getPermission()));
-                map.put("replication", 0);
-                map.put("type", inode.getType());
-                map.put("fileId", inode.getId());
-                map.put("childrenNum", dirmap.containsKey(inode.getId()) ?
-                        dirmap.get(inode.getId()).length : 0);
-                return map;
-            }
-            case SYMLINK: {
-                FsImageProto.INodeSection.INodeSymlink d = inode.getSymlink();
-                PermissionStatus p = FSImageFormatPBINode.Loader.loadPermission(
-                        d.getPermission(), stringTable);
-                map.put("accessTime", d.getAccessTime());
-                map.put("blockSize", 0);
-                map.put("group", p.getGroupName());
-                map.put("length", 0);
-                map.put("modificationTime", d.getModificationTime());
-                map.put("owner", p.getUserName());
-                map.put("pathSuffix",
-                        printSuffix ? inode.getName().toStringUtf8() : "");
-                map.put("permission", toString(p.getPermission()));
-                map.put("replication", 0);
-                map.put("type", inode.getType());
-                map.put("symlink", d.getTarget().toStringUtf8());
-                map.put("fileId", inode.getId());
-                map.put("childrenNum", 0);
-                return map;
-            }
-            default:
-                return null;
-        }
-    }
-
     public static long getFileSize(FsImageProto.INodeSection.INodeFile f) {
         long size = 0;
         for (HdfsProtos.BlockProto p : f.getBlocksList()) {
@@ -534,8 +451,7 @@ public class FSImageLoader {
         return String.format("%o", permission.toShort());
     }
 
-    private FsImageProto.INodeSection.INode fromINodeId(final long id)
-            throws IOException {
+    private FsImageProto.INodeSection.INode fromINodeId(final long id) throws IOException {
         int l = 0, r = inodes.length;
         while (l < r) {
             int mid = l + (r - l) / 2;

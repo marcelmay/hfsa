@@ -97,7 +97,7 @@ public class HdfsFSImageTool {
         }
     }
 
-    static void doSummary(CliOptions options, Report report) throws IOException {
+    static void doSummary(CliOptions options, Report report) {
         // Overall
         final OverallStats overallStats = report.overallStats;
 
@@ -183,7 +183,7 @@ public class HdfsFSImageTool {
 
         loader.visitParallel(new FsVisitor() {
             @Override
-            public void onFile(FsImageProto.INodeSection.INode inode) {
+            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
 
                 PermissionStatus p = loader.getPermissionStatus(f.getPermission());
@@ -219,7 +219,7 @@ public class HdfsFSImageTool {
             }
 
             @Override
-            public void onDirectory(FsImageProto.INodeSection.INode inode) {
+            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 PermissionStatus p = loader.getPermissionStatus(d.getPermission());
 
@@ -243,7 +243,7 @@ public class HdfsFSImageTool {
             }
 
             @Override
-            public void onSymLink(FsImageProto.INodeSection.INode inode) {
+            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
                 System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
             }
         }, dirPath);

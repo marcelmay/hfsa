@@ -24,6 +24,7 @@ It's an initial, drafty version.
 - symlinks summary
 - error handling and cli options for tool
 - report and config options for topk/sorting/selection/...
+- report /user/*/.Trash etc per directory
 
 ### License
 
