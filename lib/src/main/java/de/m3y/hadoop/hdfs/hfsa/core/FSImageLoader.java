@@ -75,6 +75,7 @@ public class FSImageLoader {
             };
 
     private static final SectionComparator SECTION_COMPARATOR = new SectionComparator();
+
     private static class SectionComparator implements Comparator<FsImageProto.FileSummary.Section> {
         @Override
         public int compare(FsImageProto.FileSummary.Section s1,
@@ -222,7 +223,7 @@ public class FSImageLoader {
         LOG.debug("Sorting inodes");
         long start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
-        LOG.info("Finished sorting inodes [{}ms]", System.currentTimeMillis() - start );
+        LOG.info("Finished sorting inodes [{}ms]", System.currentTimeMillis() - start);
         return inodes;
     }
 
@@ -259,7 +260,12 @@ public class FSImageLoader {
      */
     public void visit(FsVisitor visitor, String path) throws IOException {
         final long nodeId = lookup(path);
-        visit(visitor, nodeId, path);
+        if (dirmap.containsKey(nodeId)) {
+            long[] children = dirmap.get(nodeId);
+            for (long cid : children) {
+                visit(visitor, cid, path);
+            }
+        }
     }
 
     /**
@@ -331,6 +337,53 @@ public class FSImageLoader {
     }
 
     /**
+     * Gets the files in given directory.
+     *
+     * @param path the directory path.
+     * @return a list of file inodes, or an empty list.
+     * @throws IOException on error, eg FileNotFoundException if path does not exist
+     */
+    public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
+        final long nodeId = lookup(path);
+        long[] children = dirmap.get(nodeId);
+        if (null == children) {
+            throw new IllegalArgumentException("Path " + path + " is invalid");
+        }
+
+        List<FsImageProto.INodeSection.INode> files = new ArrayList<>(children.length);
+        for (long cid : children) {
+            final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
+            if (inode.getType() == FsImageProto.INodeSection.INode.Type.FILE) {
+                files.add(inode);
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Gets the child directory paths for given path.
+     *
+     * @param path the parent directory path.
+     * @return the list of child directory paths.
+     * @throws IOException on error.
+     */
+    public List<String> getChildPaths(String path) throws IOException {
+        final long rootNodeId = lookup(path);
+        if (!dirmap.containsKey(rootNodeId)) {
+            throw new NoSuchElementException("No node found for path " + path);
+        }
+        long[] children = dirmap.get(rootNodeId);
+        List<String> childPaths = new ArrayList<>();
+        for (long cid : children) {
+            final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
+            if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
+                childPaths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+            }
+        }
+        return childPaths;
+    }
+
+    /**
      * Return the JSON formatted ACL status of the specified file.
      *
      * @param path a path specifies a file
@@ -395,6 +448,9 @@ public class FSImageLoader {
 
     /**
      * Return the INodeId of the specified path.
+     *
+     * @param path the path.
+     * @return the inode id.
      */
     private long lookup(String path) throws IOException {
         Preconditions.checkArgument(path.startsWith("/"));
