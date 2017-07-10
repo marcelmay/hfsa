@@ -260,13 +260,26 @@ public class FSImageLoader {
      */
     public void visit(FsVisitor visitor, String path) throws IOException {
         final long nodeId = lookup(path);
+        // Visit path dir
+        FsImageProto.INodeSection.INode pathNode = fromINodeId(nodeId);
+        if ("/".equals(path)) {
+            visitor.onDirectory(pathNode, path);
+        } else {
+            // Need to strip current node path from path if not "/"
+            final String substring = path.substring(0, path.length() - pathNode.getName().toStringUtf8().length());
+            visitor.onDirectory(pathNode, substring);
+        }
+
+        // Child dirs?
         if (dirmap.containsKey(nodeId)) {
+            // Visit children
             long[] children = dirmap.get(nodeId);
             for (long cid : children) {
                 visit(visitor, cid, path);
             }
         }
     }
+
 
     /**
      * Traverses FS tree, using Java parallel stream.
@@ -359,6 +372,18 @@ public class FSImageLoader {
         }
         return files;
     }
+
+    /**
+     * Returns the INode of a directory, file or symlink for the specified path.
+     *
+     * @param path the path of the inode.
+     * @throws IOException on error.
+     */
+    public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
+        final long nodeId = lookup(path);
+        return fromINodeId(nodeId);
+    }
+
 
     /**
      * Gets the child directory paths for given path.
