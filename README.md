@@ -21,7 +21,6 @@ TODO: Example
 It's an initial, drafty version.
 - Documentation
 - Deployment to Maven repo
-- symlinks summary
 - error handling and cli options for tool
 - report and config options for topk/sorting/selection/...
 - report /user/*/.Trash etc per directory

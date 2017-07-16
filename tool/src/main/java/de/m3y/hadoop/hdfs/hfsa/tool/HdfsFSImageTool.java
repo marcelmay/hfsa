@@ -24,6 +24,7 @@ public class HdfsFSImageTool {
     abstract static class AbstractStats {
         long sumFiles;
         long sumDirectories;
+        long sumSymLinks;
         long sumBlocks;
         long sumFileSize;
         final SizeBucket fileSizeBuckets;
@@ -88,7 +89,7 @@ public class HdfsFSImageTool {
         }
 
         for (String dir : options.dirs) {
-            LOG.info("Visting " + dir + " ...");
+            LOG.info("Visiting " + dir + " ...");
             long start = System.currentTimeMillis();
             final Report report = computeReport(loader, dir);
             LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
@@ -118,15 +119,16 @@ public class HdfsFSImageTool {
         final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
 
         System.out.println(
-                "#Groups  | #Users      | #Directories | #Files     | Size [MB] | #Blocks   | File Size Buckets ");
+                "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
         String header2ndLine =
-                "         |             |              |            |           |           | " + bucketHeader;
+                "         |             |              |           |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
 
-        System.out.println(String.format("%8d | %11d | %12d | %10d | %9d | %9d | %s",
+        System.out.println(String.format("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s",
                 report.groupStats.size(), report.userStats.size(),
-                overallStats.sumDirectories, overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
+                overallStats.sumDirectories, overallStats.sumSymLinks,
+                overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
                 overallStats.sumBlocks,
                 String.format(bucketFormatValue, Arrays.stream(overallStats.fileSizeBuckets.get()).boxed().toArray())
         ));
@@ -134,15 +136,16 @@ public class HdfsFSImageTool {
 
         // Groups
         System.out.println(String.format(
-                "By group:     %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets",
+                "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
                 report.groupStats.size()));
         header2ndLine = "     " +
-                "                  |              |            |           |           | " + bucketHeader;
+                "                  |              |           |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (GroupStats stat : sorted(report.groupStats.values(), options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
-                    stat.groupName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+            System.out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+                    stat.groupName, stat.sumDirectories, stat.sumSymLinks,
+                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
             ));
@@ -152,15 +155,16 @@ public class HdfsFSImageTool {
         System.out.println();
         final List<UserStats> userStats = filter(report.userStats.values(), options);
         System.out.println(String.format(
-                "By user:      %8d | #Directories | #File      | Size [MB] | #Blocks   | File Size Buckets",
+                "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
                 userStats.size()));
         header2ndLine = "     " +
-                "                  |              |            |           |           | " + bucketHeader;
+                "                  |              |           |            |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (UserStats stat : sorted(userStats, options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %10d | %9d | %9d | %s",
-                    stat.userName, stat.sumDirectories, stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+            System.out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+                    stat.userName, stat.sumDirectories, stat.sumSymLinks,
+                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
             ));
@@ -245,6 +249,30 @@ public class HdfsFSImageTool {
             @Override
             public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
                 System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
+                overallStats.sumSymLinks++;
+                final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
+                if(symlink.hasPermission()) {
+                    PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
+
+                    // Group stats
+                    final String groupName = p.getGroupName();
+                    final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
+                    synchronized (groupStat) {
+                        groupStat.sumDirectories++;
+                    }
+
+                    // User stats
+                    final String userName = p.getUserName();
+                    final UserStats userStat = report.getOrCreateUserStats(userName);
+                    synchronized (userStat) {
+                        userStat.sumDirectories++;
+                    }
+
+                    synchronized (overallStats) {
+                        overallStats.sumDirectories++;
+                    }
+                }
+
             }
         }, dirPath);
 
