@@ -7,8 +7,10 @@
     <artifactId>hfsa-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <name>Hadoop File System Analyzer (HFSA)</name>
 
-    <description>HFSA allows extracting statistics from Hadoop HDFS FSImage files</description>
+    <description>Hadoop File System Analyzer (HFSA) allows extracting statistics from Hadoop HDFS FSImage files
+    </description>
     <url>https://github.com/marcelmay/hfsa.git</url>
 
     <scm>

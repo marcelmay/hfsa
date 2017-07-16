@@ -6,6 +6,7 @@
     <artifactId>hfsa-lib</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <name>HFSA Lib</name>
     <parent>
         <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
         <artifactId>hfsa-parent</artifactId>
