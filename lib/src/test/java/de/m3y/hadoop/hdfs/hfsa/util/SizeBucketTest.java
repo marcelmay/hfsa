@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class SizeBucketTest {
 
@@ -12,12 +13,16 @@ public class SizeBucketTest {
         SizeBucket sizeBucket = new SizeBucket();
 
         assertEquals(0, sizeBucket.findMaxNumBucket());
+        assertEquals(0, sizeBucket.getBucketCounter(0));
+        assertEquals(0, sizeBucket.findMaxBucketCount());
         sizeBucket.add(0L);
         assertArrayEquals(new long[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, sizeBucket.get());
         assertEquals(0, sizeBucket.findMaxNumBucket());
+        assertEquals(1, sizeBucket.getBucketCounter(0));
         sizeBucket.add(1L);
         assertArrayEquals(new long[]{1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, sizeBucket.get());
         assertEquals(1, sizeBucket.findMaxNumBucket());
+        assertEquals(1, sizeBucket.findMaxBucketCount());
         long size = 1024L * 1024L;
         sizeBucket.add(size);
         final long[] expected = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -42,5 +47,25 @@ public class SizeBucketTest {
         sizeBucket.add(2L * 1024L * 1024L);
         expected[3]++;
         assertArrayEquals(expected, sizeBucket.get());
+    }
+
+    @Test
+    public void testMaxBucketCount() {
+        SizeBucket sizeBucket = new SizeBucket();
+        assertEquals(0, sizeBucket.findMaxBucketCount());
+
+        sizeBucket.add(0L);
+        assertEquals(1, sizeBucket.findMaxBucketCount());
+        sizeBucket.add(0L);
+        assertEquals(2, sizeBucket.findMaxBucketCount());
+        sizeBucket.add(2L * 1024L * 1024L);
+        sizeBucket.add(2L * 1024L * 1024L);
+        sizeBucket.add(2L * 1024L * 1024L);
+        sizeBucket.add(2L * 1024L * 1024L);
+        sizeBucket.add(2L * 1024L * 1024L);
+        assertEquals(5, sizeBucket.findMaxBucketCount());
+        sizeBucket.add(100L * 1024L * 1024L);
+        sizeBucket.add(100L * 1024L * 1024L);
+        assertEquals(5, sizeBucket.findMaxBucketCount());
     }
 }

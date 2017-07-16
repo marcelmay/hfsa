@@ -138,7 +138,12 @@ public class SizeBucket {
         return max;
     }
 
-    long findMaxBucketSizeEntry() {
+    /**
+     * Finds the max bucket count.
+     *
+     * @return the max bucket count.
+     */
+    long findMaxBucketCount() {
         long max = 0;
         for (final long numBucketEntries : fileSizeBuckets) {
             if (max < numBucketEntries) {
