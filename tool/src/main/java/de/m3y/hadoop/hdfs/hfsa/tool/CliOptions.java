@@ -7,7 +7,7 @@ import picocli.CommandLine;
 /**
  * Command line options for tool
  */
-@CommandLine.Command(separator = " ", showDefaultValues = true)
+@CommandLine.Command(name = "hfsa-tool", separator = " ", showDefaultValues = true)
 class CliOptions {
     @CommandLine.Option(names = {"-h", "--help"}, help = true,
             description = "Displays this help message and quits.")
