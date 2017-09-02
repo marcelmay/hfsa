@@ -384,6 +384,22 @@ public class FSImageLoader {
         return fromINodeId(nodeId);
     }
 
+    /**
+     * Checks if an INode entry (directory, file or symlink) exists for the specified path.
+     *
+     * @param path the path of the inode.
+     * @return true, if exists.
+     * @throws IOException on error.
+     */
+    public boolean hasINode(String path) throws IOException {
+        try {
+            lookup(path);
+            return true;
+        } catch (FileNotFoundException e) {
+            // not found
+        }
+        return false;
+    }
 
     /**
      * Gets the child directory paths for given path.

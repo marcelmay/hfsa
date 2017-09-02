@@ -245,4 +245,17 @@ public class FSImageLoaderTest {
         }
     }
 
+    @Test
+    public void testHasINode() throws IOException {
+        assertTrue(loader.hasINode("/user"));
+        assertTrue(loader.hasINode("/test3/test.img"));
+        assertFalse(loader.hasINode("/does-not-exist"));
+        try {
+            assertFalse(loader.hasINode("invalid-path"));
+            fail("Expected exception for invalid path");
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+    }
+
 }
