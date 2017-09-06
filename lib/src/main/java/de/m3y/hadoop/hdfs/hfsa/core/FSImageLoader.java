@@ -402,7 +402,7 @@ public class FSImageLoader {
     }
 
     /**
-     * Gets the child directory paths for given path.
+     * Gets the child directory absolute paths for given path.
      *
      * @param path the parent directory path.
      * @return the list of child directory paths.
@@ -422,6 +422,30 @@ public class FSImageLoader {
             }
         }
         return childPaths;
+    }
+
+    /**
+     * Checks if directory INode has any children (dirs, files , links).
+     *
+     * Note: Slower thant {@link #hasChildren(long)}, as path has to be parsed and loaded.
+     *
+     * @param path the directory path - must exist, or a java.util.NoSuchElementException will be thrown.
+     * @return true, if child inodes exist.
+     */
+    public boolean hasChildren(String path) throws IOException {
+        final long rootNodeId = lookup(path);
+        return hasChildren(rootNodeId);
+    }
+
+    /**
+     * Checks if directory INode has any children (dirs, files , links).
+     *
+     * @param nodeId the node id.
+     * @return true, if child inodes exist.
+     */
+    public boolean hasChildren(long nodeId) {
+        long[] children = dirmap.get(nodeId);
+        return null != children && children.length > 0;
     }
 
     /**

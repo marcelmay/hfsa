@@ -11,6 +11,8 @@ import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.*;
 
@@ -38,6 +40,7 @@ import static org.junit.Assert.*;
  * </pre>
  */
 public class FSImageLoaderTest {
+    private static final Logger LOG = LoggerFactory.getLogger(FSImageLoaderTest.class);
     private FSImageLoader loader;
 
     private Set<String> groupNames = new HashSet<>();
@@ -61,7 +64,9 @@ public class FSImageLoaderTest {
         loader.visit(new FsVisitor() {
             @Override
             public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                files.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+                final String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                LOG.debug(fileName);
+                files.add(fileName);
                 paths.add(path);
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
 
@@ -74,7 +79,9 @@ public class FSImageLoaderTest {
 
             @Override
             public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                paths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+                final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                paths.add(dirName);
+                LOG.debug(dirName);
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 PermissionStatus p = loader.getPermissionStatus(d.getPermission());
                 groupNames.add(p.getGroupName());
@@ -139,7 +146,6 @@ public class FSImageLoaderTest {
 
             @Override
             public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                System.out.println(path + " : " + inode.getName().toStringUtf8());
                 paths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 PermissionStatus p = loader.getPermissionStatus(d.getPermission());
@@ -254,6 +260,26 @@ public class FSImageLoaderTest {
             assertFalse(loader.hasINode("invalid-path"));
             fail("Expected exception for invalid path");
         } catch (IllegalArgumentException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testHasChildren() throws IOException {
+        assertTrue(loader.hasChildren("/"));
+        assertTrue(loader.hasChildren(loader.getINodeFromPath("/").getId()));
+        assertTrue(loader.hasChildren("/user"));
+        assertTrue(loader.hasChildren(loader.getINodeFromPath("/user").getId()));
+        assertTrue(loader.hasChildren("/test3/foo/bar/"));
+        assertTrue(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar/").getId()));
+        assertTrue(loader.hasChildren("/test3/foo/bar"));
+        assertTrue(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar").getId()));
+        assertFalse(loader.hasChildren("/test1"));
+        assertFalse(loader.hasChildren(loader.getINodeFromPath("/test1").getId()));
+        try {
+            assertFalse(loader.hasChildren("/test3/nonexistent/path"));
+            fail("Expected FileNotFoundException");
+        } catch(FileNotFoundException e) {
             // Expected
         }
     }
