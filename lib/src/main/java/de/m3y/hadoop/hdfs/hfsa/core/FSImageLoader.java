@@ -61,13 +61,7 @@ public class FSImageLoader {
                                 .INode.parseFrom(o1);
                         final FsImageProto.INodeSection.INode r = FsImageProto.INodeSection
                                 .INode.parseFrom(o2);
-                        if (l.getId() < r.getId()) {
-                            return -1;
-                        } else if (l.getId() > r.getId()) {
-                            return 1;
-                        } else {
-                            return 0;
-                        }
+                        return Long.compare(l.getId(), r.getId());
                     } catch (InvalidProtocolBufferException e) {
                         throw new IllegalArgumentException(e);
                     }
