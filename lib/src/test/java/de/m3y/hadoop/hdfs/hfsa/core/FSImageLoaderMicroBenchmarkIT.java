@@ -17,22 +17,9 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public class FSImageLoaderMicroBenchmarkIT {
-    @State(Scope.Benchmark)
-    public static class FileState {
-        RandomAccessFile file;
 
-        @Setup(Level.Iteration)
-        public void setUp() {
-            try {
-                file = openFile();
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-
-        static RandomAccessFile openFile() throws FileNotFoundException {
-            return new RandomAccessFile("../../fsi_dir/fsimage_11", "r");
-        }
+    static RandomAccessFile openFile() throws FileNotFoundException {
+        return new RandomAccessFile("src/test/resources/fsi_small.img", "r");
     }
 
     @State(Scope.Benchmark)
@@ -42,7 +29,7 @@ public class FSImageLoaderMicroBenchmarkIT {
            @Setup(Level.Trial)
            public void setUp() {
                try {
-                   loader = FSImageLoader.load(FileState.openFile());
+                   loader = FSImageLoader.load(openFile());
                } catch (IOException e) {
                    throw new IllegalStateException(e);
                }
@@ -50,8 +37,8 @@ public class FSImageLoaderMicroBenchmarkIT {
        }
 
     @Benchmark
-    public void loadFsImageFile(FileState state, Blackhole blackhole) throws IOException {
-        blackhole.consume(FSImageLoader.load(state.file));
+    public void loadFsImageFile(Blackhole blackhole) throws IOException {
+        blackhole.consume(FSImageLoader.load(openFile()));
     }
 
     @Benchmark
