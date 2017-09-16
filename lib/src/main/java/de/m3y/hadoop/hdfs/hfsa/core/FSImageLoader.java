@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
@@ -57,16 +56,29 @@ public class FSImageLoader {
                 @Override
                 public int compare(byte[] o1, byte[] o2) {
                     try {
-                        final FsImageProto.INodeSection.INode l = FsImageProto.INodeSection
-                                .INode.parseFrom(o1);
-                        final FsImageProto.INodeSection.INode r = FsImageProto.INodeSection
-                                .INode.parseFrom(o2);
-                        return Long.compare(l.getId(), r.getId());
-                    } catch (InvalidProtocolBufferException e) {
+                        return Long.compare(extractNodeId(o1), extractNodeId(o2));
+                    } catch (IOException e) {
                         throw new IllegalArgumentException(e);
                     }
                 }
             };
+
+    private static long extractNodeId(byte[] buf) throws IOException {
+        // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
+        // In a micro benchmark, it is several times(!) faster
+        // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
+        CodedInputStream input = CodedInputStream.newInstance(buf, 0, buf.length);
+        int tag = input.readTag();
+        if (tag != 8) {
+            throw new IllegalStateException("Can not parse type enum from INode, got tag " + tag + " but expected " + 8);
+        }
+        input.readEnum(); // Ignore
+        tag = input.readTag();
+        if (tag != 16) {
+            throw new IllegalStateException("Can not parse type enum from INode, got tag " + tag + " but expected " + 16);
+        }
+        return input.readUInt64();
+    }
 
     private static final SectionComparator SECTION_COMPARATOR = new SectionComparator();
 
@@ -420,7 +432,7 @@ public class FSImageLoader {
 
     /**
      * Checks if directory INode has any children (dirs, files , links).
-     *
+     * <p>
      * Note: Slower thant {@link #hasChildren(long)}, as path has to be parsed and loaded.
      *
      * @param path the directory path - must exist, or a java.util.NoSuchElementException will be thrown.
@@ -570,15 +582,14 @@ public class FSImageLoader {
         int l = 0, r = inodes.length;
         while (l < r) {
             int mid = l + (r - l) / 2;
-            FsImageProto.INodeSection.INode n = FsImageProto.INodeSection.INode
-                    .parseFrom(inodes[mid]);
-            long nid = n.getId();
+            final byte[] inodeBytes = inodes[mid];
+            long nid = extractNodeId(inodeBytes);
             if (id > nid) {
                 l = mid + 1;
             } else if (id < nid) {
                 r = mid;
             } else {
-                return n;
+                return FsImageProto.INodeSection.INode.parseFrom(inodeBytes);
             }
         }
         return null;
