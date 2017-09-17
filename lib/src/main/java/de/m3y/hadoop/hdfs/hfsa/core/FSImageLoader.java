@@ -265,9 +265,8 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visit(FsVisitor visitor, String path) throws IOException {
-        final long nodeId = lookup(path);
         // Visit path dir
-        FsImageProto.INodeSection.INode pathNode = fromINodeId(nodeId);
+        FsImageProto.INodeSection.INode pathNode = getINodeFromPath(path);
         if ("/".equals(path)) {
             visitor.onDirectory(pathNode, path);
         } else {
@@ -277,9 +276,9 @@ public class FSImageLoader {
         }
 
         // Child dirs?
-        if (dirmap.containsKey(nodeId)) {
+        if (dirmap.containsKey(pathNode.getId())) {
             // Visit children
-            long[] children = dirmap.get(nodeId);
+            long[] children = dirmap.get(pathNode.getId());
             for (long cid : children) {
                 visit(visitor, cid, path);
             }
@@ -305,11 +304,10 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visitParallel(FsVisitor visitor, String path) throws IOException {
-        final long rootNodeId = lookup(path);
-        FsImageProto.INodeSection.INode rootNode = fromINodeId(rootNodeId);
+        FsImageProto.INodeSection.INode rootNode = getINodeFromPath(path);
         visitor.onDirectory(rootNode, path);
-        if (dirmap.containsKey(rootNodeId)) {
-            long[] children = dirmap.get(rootNodeId);
+        if (dirmap.containsKey(rootNode.getId())) {
+            long[] children = dirmap.get(rootNode.getId());
             List<Long> dirs = new ArrayList<>();
             for (long cid : children) {
                 final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
@@ -386,8 +384,49 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
-        final long nodeId = lookup(path);
-        return fromINodeId(nodeId);
+        Preconditions.checkArgument(path.startsWith("/"));
+        long id = INodeId.ROOT_INODE_ID;
+        // Root node?
+        if("/".equals(path)) {
+            return fromINodeId(id);
+        }
+
+        // Search path
+        FsImageProto.INodeSection.INode node = null;
+        for (int offset = 0, next; offset < path.length(); offset = next) {
+            next = path.indexOf('/', offset + 1);
+            if (next == -1) {
+                next = path.length();
+            }
+            if (offset + 1 > next) {
+                break;
+            }
+
+            final String component = path.substring(offset + 1, next);
+
+            if (component.isEmpty()) {
+                continue;
+            }
+
+            final long[] children = dirmap.get(id);
+            if (children == null) {
+                throw new FileNotFoundException(path);
+            }
+
+            boolean found = false;
+            for (long cid : children) {
+                node = fromINodeId(cid);
+                if (component.equals(node.getName().toStringUtf8())) {
+                    found = true;
+                    id = node.getId();
+                    break;
+                }
+            }
+            if (!found) {
+                throw new FileNotFoundException(path);
+            }
+        }
+        return node;
     }
 
     /**
@@ -473,8 +512,7 @@ public class FSImageLoader {
     }
 
     private List<AclEntry> getAclEntryList(String path) throws IOException {
-        long id = lookup(path);
-        FsImageProto.INodeSection.INode inode = fromINodeId(id);
+        FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
         switch (inode.getType()) {
             case FILE: {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
@@ -493,8 +531,7 @@ public class FSImageLoader {
     }
 
     public PermissionStatus getPermissionStatus(String path) throws IOException {
-        long id = lookup(path);
-        FsImageProto.INodeSection.INode inode = fromINodeId(id);
+        FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
         switch (inode.getType()) {
             case FILE: {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
@@ -512,54 +549,19 @@ public class FSImageLoader {
                         s.getPermission(), stringTable);
             }
             default: {
-                return null;
+                throw new IllegalStateException("No implementation for getting permission status for type "+inode.getType().name());
             }
         }
     }
 
     /**
-     * Return the INodeId of the specified path.
+     * Returns the INodeId of the specified path, or if not found throws FileNotFoundException.
      *
      * @param path the path.
      * @return the inode id.
      */
     private long lookup(String path) throws IOException {
-        Preconditions.checkArgument(path.startsWith("/"));
-        long id = INodeId.ROOT_INODE_ID;
-        for (int offset = 0, next; offset < path.length(); offset = next) {
-            next = path.indexOf('/', offset + 1);
-            if (next == -1) {
-                next = path.length();
-            }
-            if (offset + 1 > next) {
-                break;
-            }
-
-            final String component = path.substring(offset + 1, next);
-
-            if (component.isEmpty()) {
-                continue;
-            }
-
-            final long[] children = dirmap.get(id);
-            if (children == null) {
-                throw new FileNotFoundException(path);
-            }
-
-            boolean found = false;
-            for (long cid : children) {
-                FsImageProto.INodeSection.INode child = fromINodeId(cid);
-                if (component.equals(child.getName().toStringUtf8())) {
-                    found = true;
-                    id = child.getId();
-                    break;
-                }
-            }
-            if (!found) {
-                throw new FileNotFoundException(path);
-            }
-        }
-        return id;
+       return getINodeFromPath(path).getId();
     }
 
     public PermissionStatus getPermissionStatus(long permission) {
