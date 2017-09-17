@@ -9,8 +9,44 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
 * a [library](lib) for fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
   derived from [Apache HDFS FSImageLoder](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java) )
 
-TODO: Example 
+## Example usage for library
 
+See [SImageLoaderTest.java)](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
+
+The following lines visit all directory-, file- and symlink inodes:
+```
+RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
+FSImageLoader.load(file)
+             .visit(new FsVisitor() {
+                     @Override
+                     public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+                         // Do something
+                         final String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                         System.out.println(fileName);
+                         FsImageProto.INodeSection.INodeFile f = inode.getFile();
+                         PermissionStatus p = loader.getPermissionStatus(f.getPermission());
+                         ...
+                     }
+             
+                     @Override
+                     public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                         // Do something
+                         final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                         System.out.println("Directory : " + fileName);
+                         
+                         FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
+                         PermissionStatus p = loader.getPermissionStatus(d.getPermission());
+                         ...
+                     }
+             
+                     @Override
+                     public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                         // Do something
+                     }
+             }
+);
+```
+        
 ### Requirements
 
 - JDK 1.8
@@ -20,7 +56,6 @@ TODO: Example
 
 It's an initial, drafty version.
 - Documentation
-- Deployment to Maven repo
 - error handling and cli options for tool
 - report and config options for topk/sorting/selection/...
 - report /user/*/.Trash etc per directory
