@@ -130,7 +130,8 @@ public class HdfsFSImageTool {
                 overallStats.sumDirectories, overallStats.sumSymLinks,
                 overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
                 overallStats.sumBlocks,
-                String.format(bucketFormatValue, Arrays.stream(overallStats.fileSizeBuckets.get()).boxed().toArray())
+                String.format(bucketFormatValue,
+                        FormatUtil.boxAndPadWithZeros(maxLength.length, overallStats.fileSizeBuckets.get()))
         ));
         System.out.println();
 
@@ -147,7 +148,8 @@ public class HdfsFSImageTool {
                     stat.groupName, stat.sumDirectories, stat.sumSymLinks,
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
-                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
+                    String.format(bucketFormatValue,
+                            FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
             ));
         }
 
@@ -166,7 +168,8 @@ public class HdfsFSImageTool {
                     stat.userName, stat.sumDirectories, stat.sumSymLinks,
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
-                    String.format(bucketFormatValue, Arrays.stream(stat.fileSizeBuckets.get()).boxed().toArray())
+                    String.format(bucketFormatValue,
+                            FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
             ));
         }
     }
@@ -251,7 +254,7 @@ public class HdfsFSImageTool {
                 System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
                 overallStats.sumSymLinks++;
                 final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
-                if(symlink.hasPermission()) {
+                if (symlink.hasPermission()) {
                     PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
 
                     // Group stats

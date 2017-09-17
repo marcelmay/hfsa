@@ -1,5 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.tool;
 
+import java.util.Arrays;
+
 /**
  * Helps formatting output.
  */
@@ -71,5 +73,16 @@ public class FormatUtil {
             buf.append(c);
         }
         return buf.toString();
+    }
+
+    public static Object[] boxAndPadWithZeros(int length, long[] values) {
+        long[] padded;
+        if (values.length == length) {
+            padded = values;
+        } else {
+            padded = new long[length];
+            System.arraycopy(values, 0, padded, 0, values.length);
+        }
+        return Arrays.stream(padded).boxed().toArray();
     }
 }
