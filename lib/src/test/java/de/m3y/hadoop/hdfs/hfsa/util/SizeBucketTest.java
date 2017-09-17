@@ -4,7 +4,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class SizeBucketTest {
 
@@ -32,7 +31,7 @@ public class SizeBucketTest {
             sizeBucket.add(size);
             expected[i + 3]++;
             assertArrayEquals(expected, sizeBucket.get());
-            assertEquals(i+3, sizeBucket.findMaxNumBucket());
+            assertEquals(i + 3, sizeBucket.findMaxNumBucket());
         }
 
         sizeBucket.add(0L);
@@ -47,6 +46,12 @@ public class SizeBucketTest {
         sizeBucket.add(2L * 1024L * 1024L);
         expected[3]++;
         assertArrayEquals(expected, sizeBucket.get());
+
+        // Trigger resize
+        sizeBucket.add(300L * 1024L * 1024L * 1024L);
+        assertArrayEquals(new long[]{
+                2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1}, sizeBucket.get());
     }
 
     @Test

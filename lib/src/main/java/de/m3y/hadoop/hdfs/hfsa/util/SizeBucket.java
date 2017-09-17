@@ -106,7 +106,7 @@ public class SizeBucket {
     public void add(long size) {
         int bucket = bucketModel.computeBucket(size);
         if (bucket >= fileSizeBuckets.length) {
-            long[] newFileSizeBuckets = new long[bucket];
+            long[] newFileSizeBuckets = new long[bucket + 1];
             System.arraycopy(fileSizeBuckets, 0, newFileSizeBuckets, 0, fileSizeBuckets.length);
             fileSizeBuckets = newFileSizeBuckets;
         }
