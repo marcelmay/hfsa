@@ -1,5 +1,7 @@
 # Hadoop FSImage Analyzer (HFSA)
 
+[![Maven Central](https://img.shields.io/maven-central/v/de.m3y.hadoop.hdfs.hfsa/hfsa-parent.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.m3y.hadoop.hdfs.hfsa%22%20AND%20a%3A%22hfsa-parent%22)
+
 ### Intro
 
 Hadoop FSImage Analyzer (HFSA) complements the [Apache Hadoop 'hadoop-hdfs' tool](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html)
@@ -11,7 +13,7 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
 
 ## Example usage for library
 
-See [SImageLoaderTest.java)](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
+See [FSImageLoaderTest.java)](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
 
 The following lines visit all directory-, file- and symlink inodes:
 ```
@@ -54,11 +56,9 @@ FSImageLoader.load(file)
 
 ### TODO
 
-It's an initial, drafty version.
 - Documentation
 - error handling and cli options for tool
 - report and config options for topk/sorting/selection/...
-- report /user/*/.Trash etc per directory
 
 ### License
 
