@@ -141,7 +141,7 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.6.2</version>
+                    <version>3.7.0</version>
                     <configuration>
                         <source>1.8</source>
                         <target>1.8</target>
@@ -155,7 +155,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.20</version>
+                    <version>2.20.1</version>
                     <configuration>
                         <includes>
                             <include>**/*Test.java</include>
@@ -167,7 +167,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.20</version>
+                    <version>2.20.1</version>
                     <executions>
                         <execution>
                             <id>failsafe-integration-tests</id>
@@ -234,7 +234,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
