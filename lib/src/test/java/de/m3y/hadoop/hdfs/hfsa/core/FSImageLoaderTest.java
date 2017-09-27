@@ -1,6 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.core;
 
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -235,6 +236,16 @@ public class FSImageLoaderTest {
         final FsImageProto.INodeSection.INode fileNode = loader.getINodeFromPath("/test3/test_160MiB.img");
         assertEquals("test_160MiB.img", fileNode.getName().toStringUtf8());
         assertEquals(FsImageProto.INodeSection.INode.Type.FILE, fileNode.getType());
+
+        // Behave like java.io.File (POSIX), which allows redundant slashes
+        final FsImageProto.INodeSection.INode rootRootNode = loader.getINodeFromPath("//");
+        assertEquals("", rootRootNode.getName().toStringUtf8());
+
+        final FsImageProto.INodeSection.INode r3Node = loader.getINodeFromPath("///");
+        assertEquals("", r3Node.getName().toStringUtf8());
+
+        final FsImageProto.INodeSection.INode r3FileNode = loader.getINodeFromPath("///test3//test_160MiB.img");
+        assertEquals("test_160MiB.img", r3FileNode.getName().toStringUtf8());
     }
 
     @Test
@@ -290,6 +301,9 @@ public class FSImageLoaderTest {
         } catch (IllegalArgumentException e) {
             // Expected
         }
+
+        assertTrue(loader.hasINode("/"));
+        assertTrue(loader.hasINode("//"));
     }
 
     @Test

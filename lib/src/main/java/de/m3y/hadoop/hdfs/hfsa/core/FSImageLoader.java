@@ -19,6 +19,7 @@ package de.m3y.hadoop.hdfs.hfsa.core;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -395,24 +396,25 @@ public class FSImageLoader {
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
         Preconditions.checkArgument(path.startsWith("/"));
+        String normalizedPath = normalizePath(path);
         long id = INodeId.ROOT_INODE_ID;
         // Root node?
-        if ("/".equals(path)) {
+        if ("/".equals(normalizedPath)) {
             return fromINodeId(id);
         }
 
         // Search path
         FsImageProto.INodeSection.INode node = null;
-        for (int offset = 0, next; offset < path.length(); offset = next) {
-            next = path.indexOf('/', offset + 1);
+        for (int offset = 0, next; offset < normalizedPath.length(); offset = next) {
+            next = normalizedPath.indexOf('/', offset + 1);
             if (next == -1) {
-                next = path.length();
+                next = normalizedPath.length();
             }
             if (offset + 1 > next) {
                 break;
             }
 
-            final String component = path.substring(offset + 1, next);
+            final String component = normalizedPath.substring(offset + 1, next);
 
             if (component.isEmpty()) {
                 continue;
@@ -438,6 +440,7 @@ public class FSImageLoader {
         }
         return node;
     }
+
 
     /**
      * Checks if an INode entry (directory, file or symlink) exists for the specified path.
@@ -612,4 +615,10 @@ public class FSImageLoader {
         final Long inodeId = inode.getId();
         return dirmap.containsKey(inodeId) ? dirmap.get(inodeId).length : 0;
     }
+
+    private static final Pattern DOUBLE_SLASH = Pattern.compile("//+");
+    static String normalizePath(String path) {
+        return DOUBLE_SLASH.matcher(path).replaceAll("/");
+    }
+
 }
