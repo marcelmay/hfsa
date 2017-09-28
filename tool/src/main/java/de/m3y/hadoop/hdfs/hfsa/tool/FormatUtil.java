@@ -2,28 +2,21 @@ package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.util.Arrays;
 
+import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
+
 /**
  * Helps formatting output.
  */
-public class FormatUtil {
-    static final String[] UNITS = new String[]{"B", "KiB", "MiB", "GiB", "TiB"};
+class FormatUtil {
 
     private FormatUtil() {
         // No instantiation
     }
 
-    static String toStorageUnit(long size) {
-        if (0L == size) {
-            return "0 B";
-        }
-        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-        return (int) (size / Math.pow(1024, digitGroups)) + " " + UNITS[digitGroups];
-    }
-
     static String[] toStringSizeFormatted(long[] size) {
         String[] units = new String[size.length];
         for (int i = 0; i < units.length; i++) {
-            units[i] = toStorageUnit(size[i]);
+            units[i] = IECBinary.format(size[i]);
         }
         return units;
     }
@@ -75,7 +68,7 @@ public class FormatUtil {
         return buf.toString();
     }
 
-    public static Object[] boxAndPadWithZeros(int length, long[] values) {
+    static Object[] boxAndPadWithZeros(int length, long[] values) {
         long[] padded;
         if (values.length == length) {
             padded = values;
