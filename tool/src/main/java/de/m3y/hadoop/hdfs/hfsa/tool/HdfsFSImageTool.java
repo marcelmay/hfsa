@@ -121,7 +121,7 @@ public class HdfsFSImageTool {
         System.out.println(
                 "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
         String header2ndLine =
-                "         |             |              |           |            |           |           | " + bucketHeader;
+                "         |             |              |           |             |           |           | " + bucketHeader;
         System.out.println(header2ndLine);
         System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
 

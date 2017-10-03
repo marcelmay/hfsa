@@ -68,13 +68,20 @@ class FormatUtil {
         return buf.toString();
     }
 
+    /**
+     * Pad and box primitive array.
+     *
+     * @param length the max length.
+     * @param values the values.
+     * @return a new array, with boxed and zero-padded values.
+     */
     static Object[] boxAndPadWithZeros(int length, long[] values) {
         long[] padded;
         if (values.length == length) {
             padded = values;
         } else {
             padded = new long[length];
-            System.arraycopy(values, 0, padded, 0, values.length);
+            System.arraycopy(values, 0, padded, 0, padded.length);
         }
         return Arrays.stream(padded).boxed().toArray();
     }
