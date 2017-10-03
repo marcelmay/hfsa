@@ -17,7 +17,7 @@ public class IECBinary {
     /**
      * Formats as IEC binary, rounding fractions.
      * <p>
-     * Example: 1024 => 1 KiB
+     * Example: 1024 =&gt; 1 KiB
      *
      * @param numericalValue the numerical value
      * @return the formatted value

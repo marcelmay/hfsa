@@ -392,6 +392,7 @@ public class FSImageLoader {
      * Returns the INode of a directory, file or symlink for the specified path.
      *
      * @param path the path of the inode.
+     * @return  the INode found.
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
@@ -489,6 +490,7 @@ public class FSImageLoader {
      *
      * @param path the directory path - must exist, or a java.util.NoSuchElementException will be thrown.
      * @return true, if child inodes exist.
+     * @throws IOException on error.
      */
     public boolean hasChildren(String path) throws IOException {
         final long rootNodeId = lookup(path);
