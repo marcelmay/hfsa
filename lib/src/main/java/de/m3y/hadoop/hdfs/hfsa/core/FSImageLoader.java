@@ -169,7 +169,6 @@ public class FSImageLoader {
         }
         long start = System.currentTimeMillis();
         Map<Long, long[]> dirs = Maps.newHashMap();
-        long counter = 0;
         while (true) {
             FsImageProto.INodeDirectorySection.DirEntry e =
                     FsImageProto.INodeDirectorySection.DirEntry.parseDelimitedFrom(in);
@@ -177,7 +176,6 @@ public class FSImageLoader {
             if (e == null) {
                 break;
             }
-            ++counter;
 
             long[] l = new long[e.getChildrenCount() + e.getRefChildrenCount()];
             for (int i = 0; i < e.getChildrenCount(); ++i) {
@@ -189,7 +187,7 @@ public class FSImageLoader {
             }
             dirs.put(e.getParent(), l);
         }
-        LOG.info("Loaded {} directories [{}ms]", counter, (System.currentTimeMillis() - start));
+        LOG.info("Loaded {} directories [{}ms]", dirs.size(), (System.currentTimeMillis() - start));
         return dirs;
     }
 
@@ -228,9 +226,6 @@ public class FSImageLoader {
             IOUtils.readFully(in, bytes, 0, size);
             inodes[i] = bytes;
         }
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("Sorting inodes ...");
-        }
         long start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
         LOG.info("Sorted {} inodes in [{}ms]", inodes.length, System.currentTimeMillis() - start);
@@ -239,15 +234,19 @@ public class FSImageLoader {
 
     static String[] loadStringTable(InputStream in) throws
             IOException {
+        long start = System.currentTimeMillis();
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection
                 .parseDelimitedFrom(in);
-        LOG.info("Loading {} strings", s.getNumEntry());
+        if(LOG.isDebugEnabled()) {
+            LOG.debug("Loading {} strings", s.getNumEntry());
+        }
         String[] stringTable = new String[s.getNumEntry() + 1];
         for (int i = 0; i < s.getNumEntry(); ++i) {
             FsImageProto.StringTableSection.Entry e = FsImageProto
                     .StringTableSection.Entry.parseDelimitedFrom(in);
             stringTable[e.getId()] = e.getStr();
         }
+        LOG.info("Loaded {} strings in [{}ms]", s.getNumEntry(), System.currentTimeMillis()-start);
         return stringTable;
     }
 
