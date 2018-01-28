@@ -1,6 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -79,7 +80,7 @@ public class HdfsFSImageTool {
         }
     }
 
-    static void doPerform(CliOptions options) throws IOException {
+    static void doPerform(CliOptions options, PrintStream out) throws IOException {
         RandomAccessFile file = new RandomAccessFile(options.fsImageFile, "r");
         final FSImageLoader loader = FSImageLoader.load(file);
 
@@ -92,21 +93,21 @@ public class HdfsFSImageTool {
             LOG.info("Visiting " + dir + " ...");
             long start = System.currentTimeMillis();
             final Report report = computeReport(loader, dir);
-            LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "].");
+            LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "ms].");
 
-            doSummary(options, report);
+            doSummary(options, report, out);
         }
     }
 
-    static void doSummary(CliOptions options, Report report) {
+    static void doSummary(CliOptions options, Report report, PrintStream out) {
         // Overall
         final OverallStats overallStats = report.overallStats;
 
-        System.out.println();
+        out.println();
         final String title = "HDFS Summary : " + report.dirPath;
-        System.out.println(title);
-        System.out.println(FormatUtil.padRight('-', title.length()));
-        System.out.println();
+        out.println(title);
+        out.println(FormatUtil.padRight('-', title.length()));
+        out.println();
 
         // Overall
         final String[] bucketUnits = FormatUtil.toStringSizeFormatted(
@@ -118,14 +119,14 @@ public class HdfsFSImageTool {
         final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
         final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
 
-        System.out.println(
+        out.println(
                 "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
         String header2ndLine =
                 "         |             |              |           |             |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+        out.println(header2ndLine);
+        out.println(FormatUtil.padRight('-', header2ndLine.length()));
 
-        System.out.println(String.format("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s",
+        out.println(String.format("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s",
                 report.groupStats.size(), report.userStats.size(),
                 overallStats.sumDirectories, overallStats.sumSymLinks,
                 overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
@@ -133,18 +134,18 @@ public class HdfsFSImageTool {
                 String.format(bucketFormatValue,
                         FormatUtil.boxAndPadWithZeros(maxLength.length, overallStats.fileSizeBuckets.get()))
         ));
-        System.out.println();
+        out.println();
 
         // Groups
-        System.out.println(String.format(
+        out.println(String.format(
                 "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
                 report.groupStats.size()));
         header2ndLine = "     " +
                 "                  |              |           |            |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+        out.println(header2ndLine);
+        out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (GroupStats stat : sorted(report.groupStats.values(), options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+            out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
                     stat.groupName, stat.sumDirectories, stat.sumSymLinks,
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
@@ -154,17 +155,17 @@ public class HdfsFSImageTool {
         }
 
         // Users
-        System.out.println();
+        out.println();
         final List<UserStats> userStats = filter(report.userStats.values(), options);
-        System.out.println(String.format(
+        out.println(String.format(
                 "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
                 userStats.size()));
         header2ndLine = "     " +
                 "                  |              |           |            |           |           | " + bucketHeader;
-        System.out.println(header2ndLine);
-        System.out.println(FormatUtil.padRight('-', header2ndLine.length()));
+        out.println(header2ndLine);
+        out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (UserStats stat : sorted(userStats, options.sort)) {
-            System.out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+            out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
                     stat.userName, stat.sumDirectories, stat.sumSymLinks,
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
@@ -285,13 +286,13 @@ public class HdfsFSImageTool {
     private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
         switch (sortOption) {
             case "bc":
-                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumBlocks).compareTo(o2.sumBlocks));
+                return sortStats(values, Comparator.comparingLong(o -> o.sumBlocks));
             case "fc":
-                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumFiles).compareTo(o2.sumFiles));
+                return sortStats(values, Comparator.comparingLong(o3 -> o3.sumFiles));
             case "dc":
-                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumDirectories).compareTo(o2.sumDirectories));
+                return sortStats(values, Comparator.comparingLong(o2 -> o2.sumDirectories));
             case "fs": // default sort
-                return sortStats(values, (o1, o2) -> Long.valueOf(o1.sumFileSize).compareTo(o2.sumFileSize));
+                return sortStats(values, Comparator.comparingLong(o -> o.sumFileSize));
             default:
                 throw new IllegalArgumentException("Unsupported sort option " + sortOption);
         }
@@ -304,19 +305,21 @@ public class HdfsFSImageTool {
     }
 
     public static void main(String[] args) throws IOException {
+        PrintStream out = System.out;
+        PrintStream err = System.err;
         CliOptions options = new CliOptions();
         CommandLine commandLine = new CommandLine(options);
         try {
             commandLine.parse(args);
             if (options.helpRequested) {
-                commandLine.usage(System.out);
+                commandLine.usage(out);
             } else {
-                doPerform(options);
+                doPerform(options, out);
             }
         } catch (CommandLine.ParameterException ex) {
-            System.err.println("Invalid options : " + ex.getMessage());
-            System.out.println();
-            commandLine.usage(System.err);
+            err.println("Invalid options : " + ex.getMessage());
+            err.println();
+            commandLine.usage(err);
         }
     }
 
