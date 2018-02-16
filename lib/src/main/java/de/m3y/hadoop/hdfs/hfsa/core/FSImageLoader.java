@@ -104,11 +104,11 @@ public class FSImageLoader {
         this.stringTable = stringTable;
         this.inodes = inodes;
         this.inodesIdxToIdCache = new long[inodes.length];
-        for(int i=0;i<inodesIdxToIdCache.length;i++) {
+        for (int i = 0; i < inodesIdxToIdCache.length; i++) {
             try {
                 inodesIdxToIdCache[i] = extractNodeId(inodes[i]);
             } catch (IOException e) {
-                throw new IllegalStateException("Can not parse inode "+i);
+                throw new IllegalStateException("Can not parse inode " + i);
             }
         }
         this.dirmap = dirmap;
@@ -148,7 +148,7 @@ public class FSImageLoader {
                                 fin, s.getLength())));
 
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("Loading section " + s.getName() + " length: " + s.getLength());
+                    LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
                 }
                 switch (FSImageFormatProtobuf.SectionName.fromString(s.getName())) {
                     case STRING_TABLE:
@@ -174,9 +174,6 @@ public class FSImageLoader {
     private static Map<Long, long[]> loadINodeDirectorySection
             (InputStream in, List<Long> refIdList)
             throws IOException {
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("Loading inode directory section ...");
-        }
         long start = System.currentTimeMillis();
         Map<Long, long[]> dirs = Maps.newHashMap();
         while (true) {
@@ -203,9 +200,6 @@ public class FSImageLoader {
 
     private static ImmutableList<Long> loadINodeReferenceSection(InputStream in)
             throws IOException {
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("Loading inode references");
-        }
         long startTime = System.currentTimeMillis();
         ImmutableList.Builder<Long> builder = ImmutableList.builder();
         long counter = 0;
@@ -219,7 +213,7 @@ public class FSImageLoader {
             ++counter;
             builder.add(e.getReferredId());
         }
-        LOG.info("Loaded {} inode references in [{}ms]", counter, System.currentTimeMillis()-startTime);
+        LOG.info("Loaded {} inode references [{}ms]", counter, System.currentTimeMillis() - startTime);
         return builder.build();
     }
 
@@ -247,16 +241,13 @@ public class FSImageLoader {
         long start = System.currentTimeMillis();
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection
                 .parseDelimitedFrom(in);
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("Loading {} strings", s.getNumEntry());
-        }
         String[] stringTable = new String[s.getNumEntry() + 1];
         for (int i = 0; i < s.getNumEntry(); ++i) {
             FsImageProto.StringTableSection.Entry e = FsImageProto
                     .StringTableSection.Entry.parseDelimitedFrom(in);
             stringTable[e.getId()] = e.getStr();
         }
-        LOG.info("Loaded {} strings in [{}ms]", s.getNumEntry(), System.currentTimeMillis()-start);
+        LOG.info("Loaded {} strings [{}ms]", s.getNumEntry(), System.currentTimeMillis() - start);
         return stringTable;
     }
 
@@ -401,7 +392,7 @@ public class FSImageLoader {
      * Returns the INode of a directory, file or symlink for the specified path.
      *
      * @param path the path of the inode.
-     * @return  the INode found.
+     * @return the INode found.
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
@@ -628,6 +619,7 @@ public class FSImageLoader {
     }
 
     private static final Pattern DOUBLE_SLASH = Pattern.compile("//+");
+
     static String normalizePath(String path) {
         return DOUBLE_SLASH.matcher(path).replaceAll("/");
     }
