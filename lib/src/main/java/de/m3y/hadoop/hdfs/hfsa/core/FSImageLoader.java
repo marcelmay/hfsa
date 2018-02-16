@@ -51,6 +51,8 @@ public class FSImageLoader {
     private final String[] stringTable;
     // byte representation of inodes, sorted by id
     private final byte[][] inodes;
+    // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
+    private final long[] inodesIdxToIdCache;
     private final Map<Long, long[]> dirmap;
     private static final Comparator<byte[]> INODE_BYTES_COMPARATOR = (o1, o2) -> {
         try {
@@ -101,6 +103,14 @@ public class FSImageLoader {
                           Map<Long, long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
+        this.inodesIdxToIdCache = new long[inodes.length];
+        for(int i=0;i<inodesIdxToIdCache.length;i++) {
+            try {
+                inodesIdxToIdCache[i] = extractNodeId(inodes[i]);
+            } catch (IOException e) {
+                throw new IllegalStateException("Can not parse inode "+i);
+            }
+        }
         this.dirmap = dirmap;
     }
 
@@ -599,13 +609,13 @@ public class FSImageLoader {
         int r = inodes.length;
         while (l < r) {
             int mid = l + (r - l) / 2;
-            final byte[] inodeBytes = inodes[mid];
-            long nid = extractNodeId(inodeBytes);
+            long nid = inodesIdxToIdCache[mid];
             if (id > nid) {
                 l = mid + 1;
             } else if (id < nid) {
                 r = mid;
             } else {
+                final byte[] inodeBytes = inodes[mid];
                 return FsImageProto.INodeSection.INode.parseFrom(inodeBytes);
             }
         }

@@ -55,8 +55,6 @@ public class FSImageLoaderMicroBenchmarkIT {
     public void runMicroBenchMark() throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(getClass().getName())
-                .warmupIterations(5)
-                .measurementIterations(10)
                 .mode(Mode.AverageTime)
                 .timeUnit(TimeUnit.MILLISECONDS)
                 .addProfiler(GCProfiler.class)
