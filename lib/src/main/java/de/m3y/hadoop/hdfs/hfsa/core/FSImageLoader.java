@@ -474,10 +474,11 @@ public class FSImageLoader {
         }
         long[] children = dirmap.get(rootNodeId);
         List<String> childPaths = new ArrayList<>();
+        final String pathWithTrailingSlash = ("/".equals(path) ? path : path + '/');
         for (long cid : children) {
             final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
             if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
-                childPaths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+                childPaths.add(pathWithTrailingSlash + inode.getName().toStringUtf8());
             }
         }
         return childPaths;
