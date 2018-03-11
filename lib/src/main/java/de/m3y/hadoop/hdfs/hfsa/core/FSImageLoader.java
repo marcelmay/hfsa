@@ -204,7 +204,7 @@ public class FSImageLoader {
             }
             dirs.put(e.getParent(), l);
         }
-        LOG.info("Loaded {} directories [{}ms]", dirs.size(), (System.currentTimeMillis() - start));
+        LOG.info("Loaded {} directories [{}ms]", dirs.size(), System.currentTimeMillis() - start);
         return dirs;
     }
 
@@ -484,7 +484,7 @@ public class FSImageLoader {
             throw new NoSuchElementException("No node found for path " + path);
         }
         List<String> childPaths = new ArrayList<>();
-        final String pathWithTrailingSlash = ("/".equals(path) ? path : path + '/');
+        final String pathWithTrailingSlash = "/".equals(path) ? path : path + '/';
         for (long cid : children) {
             final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
             if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {

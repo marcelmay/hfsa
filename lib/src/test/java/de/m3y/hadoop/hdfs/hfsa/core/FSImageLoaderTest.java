@@ -151,6 +151,11 @@ public class FSImageLoaderTest {
         assertEquals(1, loader.getINodeFromPath("/test3/foo/bar/test_40MiB.img").getFile().getReplication());
         assertEquals(3, loader.getINodeFromPath("/test3/foo/bar/test_80MiB.img").getFile().getReplication());
         assertEquals(5, loader.getINodeFromPath("/test3/foo/bar/test_4MiB.img").getFile().getReplication());
+
+        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/datalake")));
+        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/test3")));
+        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/test3/foo")));
+        assertEquals(6, loader.getNumChildren(loader.getINodeFromPath("/test3/foo/bar/")));
     }
 
     @Test

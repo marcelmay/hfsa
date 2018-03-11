@@ -44,7 +44,7 @@ public class IECBinary {
             throw new IllegalArgumentException("Expected pattern " + PATTERN_VALUE_WITH_STORAGE_UNIT.pattern() +
                     " but got value <" + formattedValue + ">");
         }
-        long number = Long.valueOf(matcher.group(1));
+        long number = Long.parseLong(matcher.group(1));
         String unit = matcher.group(2);
         if (null != unit) {
             for (int i = 0; i < UNITS.length; i++) {
