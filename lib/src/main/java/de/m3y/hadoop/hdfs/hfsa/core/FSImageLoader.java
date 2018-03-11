@@ -220,20 +220,20 @@ public class FSImageLoader {
 
     private static byte[][] loadINodeSection(InputStream in)
             throws IOException {
+        long start = System.currentTimeMillis();
         FsImageProto.INodeSection s = FsImageProto.INodeSection
                 .parseDelimitedFrom(in);
-        LOG.info("Loading " + s.getNumInodes() + " inodes.");
         final byte[][] inodes = new byte[(int) s.getNumInodes()][];
-
         for (int i = 0; i < s.getNumInodes(); ++i) {
             int size = CodedInputStream.readRawVarint32(in.read(), in);
             byte[] bytes = new byte[size];
             IOUtils.readFully(in, bytes, 0, size);
             inodes[i] = bytes;
         }
-        long start = System.currentTimeMillis();
+        LOG.info("Loaded {} inodes [{}ms]",s.getNumInodes() , System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
-        LOG.info("Sorted {} inodes in [{}ms]", inodes.length, System.currentTimeMillis() - start);
+        LOG.info("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
         return inodes;
     }
 
