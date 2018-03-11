@@ -230,7 +230,7 @@ public class FSImageLoader {
             IOUtils.readFully(in, bytes, 0, size);
             inodes[i] = bytes;
         }
-        LOG.info("Loaded {} inodes [{}ms]",s.getNumInodes() , System.currentTimeMillis() - start);
+        LOG.info("Loaded {} inodes [{}ms]", s.getNumInodes(), System.currentTimeMillis() - start);
         start = System.currentTimeMillis();
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
         LOG.info("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
@@ -281,10 +281,10 @@ public class FSImageLoader {
         }
 
         // Child dirs?
-        final Long pathNodeId = pathNode.getId();
-        if (dirmap.containsKey(pathNodeId)) {
+        final long pathNodeId = pathNode.getId();
+        long[] children = dirmap.get(pathNodeId);
+        if (null != children) {
             // Visit children
-            long[] children = dirmap.get(pathNodeId);
             for (long cid : children) {
                 visit(visitor, cid, path);
             }
@@ -312,9 +312,9 @@ public class FSImageLoader {
     public void visitParallel(FsVisitor visitor, String path) throws IOException {
         FsImageProto.INodeSection.INode rootNode = getINodeFromPath(path);
         visitor.onDirectory(rootNode, path);
-        final Long rootNodeId = rootNode.getId();
-        if (dirmap.containsKey(rootNodeId)) {
-            long[] children = dirmap.get(rootNodeId);
+        final long rootNodeId = rootNode.getId();
+        final long[] children = dirmap.get(rootNodeId);
+        if (null != children) {
             List<FsImageProto.INodeSection.INode> dirs = new ArrayList<>();
             for (long cid : children) {
                 final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
@@ -342,15 +342,15 @@ public class FSImageLoader {
     void visit(FsVisitor visitor, FsImageProto.INodeSection.INode inode, String path) throws IOException {
         if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
             visitor.onDirectory(inode, path);
-            final Long inodeId = inode.getId();
-            if (dirmap.containsKey(inodeId)) {
+            final long inodeId = inode.getId();
+            final long[] children = dirmap.get(inodeId);
+            if (null != children) {
                 String newPath;
                 if ("/".equals(path)) {
                     newPath = path + inode.getName().toStringUtf8();
                 } else {
                     newPath = path + '/' + inode.getName().toStringUtf8();
                 }
-                long[] children = dirmap.get(inodeId);
                 for (long cid : children) {
                     visit(visitor, cid, newPath);
                 }
@@ -469,11 +469,11 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public List<String> getChildPaths(String path) throws IOException {
-        final Long rootNodeId = lookup(path);
-        if (!dirmap.containsKey(rootNodeId)) {
+        final long rootNodeId = lookup(path);
+        long[] children = dirmap.get(rootNodeId);
+        if (null == children) {
             throw new NoSuchElementException("No node found for path " + path);
         }
-        long[] children = dirmap.get(rootNodeId);
         List<String> childPaths = new ArrayList<>();
         final String pathWithTrailingSlash = ("/".equals(path) ? path : path + '/');
         for (long cid : children) {
@@ -616,8 +616,9 @@ public class FSImageLoader {
     }
 
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {
-        final Long inodeId = inode.getId();
-        return dirmap.containsKey(inodeId) ? dirmap.get(inodeId).length : 0;
+        final long inodeId = inode.getId();
+        final long[] children = dirmap.get(inodeId);
+        return null != children ? children.length : 0;
     }
 
     private static final Pattern DOUBLE_SLASH = Pattern.compile("//+");
