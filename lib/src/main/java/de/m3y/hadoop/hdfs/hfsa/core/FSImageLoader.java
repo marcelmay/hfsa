@@ -154,7 +154,7 @@ public class FSImageLoader {
                     }
                 } else {
                     InputStream is = FSImageUtil.wrapInputStreamForCompression(conf, summary.getCodec(),
-                            new BufferedInputStream(new LimitInputStream(fin, s.getLength())));
+                            new BufferedInputStream(new LimitInputStream(fin, s.getLength()), 8 * 8192 /* 64KiB */));
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
                     }
