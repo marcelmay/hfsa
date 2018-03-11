@@ -20,10 +20,10 @@ package de.m3y.hadoop.hdfs.hfsa.core;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
@@ -129,7 +129,6 @@ public class FSImageLoader {
         }
 
         FsImageProto.FileSummary summary = FSImageUtil.loadSummary(file);
-
         try (FileInputStream fin = new FileInputStream(file.getFD())) {
             // Map to record INodeReference to the referred id
             ImmutableList<Long> refIdList = null;
@@ -137,34 +136,44 @@ public class FSImageLoader {
             byte[][] inodes = null;
             Map<Long, long[]> dirmap = null;
 
-            ArrayList<FsImageProto.FileSummary.Section> sections =
-                    Lists.newArrayList(summary.getSectionsList());
-            sections.sort(SECTION_COMPARATOR);
-
+            List<FsImageProto.FileSummary.Section> sections = summary.getSectionsList().stream()
+                    .filter(s -> {
+                        final String sectionName = s.getName();
+                        return FSImageFormatProtobuf.SectionName.STRING_TABLE.name().equals(sectionName) ||
+                                FSImageFormatProtobuf.SectionName.INODE.name().equals(sectionName) ||
+                                FSImageFormatProtobuf.SectionName.INODE_REFERENCE.name().equals(sectionName) ||
+                                FSImageFormatProtobuf.SectionName.INODE_DIR.name().equals(sectionName);
+                    })
+                    .sorted(SECTION_COMPARATOR)
+                    .collect(Collectors.toList());
             for (FsImageProto.FileSummary.Section s : sections) {
                 fin.getChannel().position(s.getOffset());
-                InputStream is = FSImageUtil.wrapInputStreamForCompression(conf,
-                        summary.getCodec(), new BufferedInputStream(new LimitInputStream(
-                                fin, s.getLength())));
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
-                }
-                switch (FSImageFormatProtobuf.SectionName.fromString(s.getName())) {
-                    case STRING_TABLE:
-                        stringTable = loadStringTable(is);
-                        break;
-                    case INODE:
-                        inodes = loadINodeSection(is);
-                        break;
-                    case INODE_REFERENCE:
-                        refIdList = loadINodeReferenceSection(is);
-                        break;
-                    case INODE_DIR:
-                        dirmap = loadINodeDirectorySection(is, refIdList);
-                        break;
-                    default:
-                        break;
+                if (s.getLength() == 0) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Skipping empty section {} of length {}", s.getName(), s.getLength());
+                    }
+                } else {
+                    InputStream is = FSImageUtil.wrapInputStreamForCompression(conf, summary.getCodec(),
+                            new BufferedInputStream(new LimitInputStream(fin, s.getLength())));
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
+                    }
+                    switch (FSImageFormatProtobuf.SectionName.fromString(s.getName())) {
+                        case STRING_TABLE:
+                            stringTable = loadStringTable(is);
+                            break;
+                        case INODE:
+                            inodes = loadINodeSection(is);
+                            break;
+                        case INODE_REFERENCE:
+                            refIdList = loadINodeReferenceSection(is);
+                            break;
+                        case INODE_DIR:
+                            dirmap = loadINodeDirectorySection(is, refIdList);
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected section " + s.getName());
+                    }
                 }
             }
             return new FSImageLoader(stringTable, inodes, dirmap);
