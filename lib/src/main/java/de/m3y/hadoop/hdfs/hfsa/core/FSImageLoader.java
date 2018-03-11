@@ -175,7 +175,7 @@ public class FSImageLoader {
             (InputStream in, List<Long> refIdList)
             throws IOException {
         long start = System.currentTimeMillis();
-        Map<Long, long[]> dirs = Maps.newHashMap();
+        Map<Long, long[]> dirs = Maps.newHashMapWithExpectedSize(512 * 1014 /* 512K */);
         while (true) {
             FsImageProto.INodeDirectorySection.DirEntry e =
                     FsImageProto.INodeDirectorySection.DirEntry.parseDelimitedFrom(in);
@@ -184,12 +184,13 @@ public class FSImageLoader {
                 break;
             }
 
-            long[] l = new long[e.getChildrenCount() + e.getRefChildrenCount()];
-            for (int i = 0; i < e.getChildrenCount(); ++i) {
+            final int childrenCount = e.getChildrenCount();
+            final long[] l = new long[childrenCount + e.getRefChildrenCount()];
+            for (int i = 0; i < childrenCount; ++i) {
                 l[i] = e.getChildren(i);
             }
-            for (int i = e.getChildrenCount(); i < l.length; i++) {
-                int refId = e.getRefChildren(i - e.getChildrenCount());
+            for (int i = childrenCount; i < l.length; i++) {
+                int refId = e.getRefChildren(i - childrenCount);
                 l[i] = refIdList.get(refId);
             }
             dirs.put(e.getParent(), l);
