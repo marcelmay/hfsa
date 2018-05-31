@@ -74,9 +74,11 @@ public class SizeBucket {
         public long[] computeBucketUpperBorders(int maxNumBuckets) {
             long[] sizes = new long[maxNumBuckets + 1];
             sizes[0] = 0L;           // 0 B
-            sizes[1] = 1024L * 1024; // 1 MiB
-            for (int i = 2; i < sizes.length; i++) {
-                sizes[i] = sizes[i - 1] * 2L;  // doubled
+            if (sizes.length > 1) {
+                sizes[1] = 1024L * 1024L; // 1 MiB
+                for (int i = 2; i < sizes.length; i++) {
+                    sizes[i] = sizes[i - 1] * 2L;  // doubled
+                }
             }
             return sizes;
         }

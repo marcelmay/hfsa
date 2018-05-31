@@ -73,4 +73,12 @@ public class SizeBucketTest {
         sizeBucket.add(100L * 1024L * 1024L);
         assertEquals(5, sizeBucket.findMaxBucketCount());
     }
+
+    @Test
+    public void testComputeBucketUpperBorders() {
+        SizeBucket sizeBucket = new SizeBucket();
+        assertArrayEquals(new long[]{0 /* Default when empty*/}, sizeBucket.computeBucketUpperBorders());
+        sizeBucket.add( 1024L);
+        assertArrayEquals(new long[]{0 , 1024L * 1024L /* 1 MiB */}, sizeBucket.computeBucketUpperBorders());
+    }
 }
