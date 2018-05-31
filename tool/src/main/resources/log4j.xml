@@ -10,7 +10,7 @@
     </appender>
 
     <root>
-        <priority value ="info" />
+        <level value ="WARN" />
         <appender-ref ref="console" />
     </root>
 

@@ -13,6 +13,11 @@ class CliOptions {
             description = "Displays this help message and quits.")
     boolean helpRequested = false;
 
+    @CommandLine.Option(names = "-v",
+            description = "Turns on verbose output. Use `-vv` for debug output."
+            )
+    boolean[] verbose;
+
     @CommandLine.Option(names = {"-s", "--sort"}, help = true,
             description = "Sort by <fs> size (default), <fc> file count, <dc> directory count or <bc> block count.")
     String sort = "fs";
@@ -25,7 +30,7 @@ class CliOptions {
             description = "FSImage file to process.")
     File fsImageFile;
 
-    @CommandLine.Parameters(paramLabel = "DIRS", index = "1..*",
-            description = "Directories to start traversing. Defaults to root '/'")
-    String[] dirs;
+    @CommandLine.Parameters(paramLabel = "DIRS", index="1..*",
+            description = "Directory paths to start traversing.")
+    String[] dirs = new String[]{"/"};
 }

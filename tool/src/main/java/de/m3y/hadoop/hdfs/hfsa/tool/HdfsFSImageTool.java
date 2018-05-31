@@ -11,6 +11,8 @@ import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
+import org.apache.log4j.Level;
+import org.apache.log4j.spi.RootLogger;
 import org.slf4j.Logger;
 import picocli.CommandLine;
 
@@ -311,6 +313,13 @@ public class HdfsFSImageTool {
         CommandLine commandLine = new CommandLine(options);
         try {
             commandLine.parse(args);
+            if (null != options.verbose) {
+                if(options.verbose.length==1) {
+                    RootLogger.getRootLogger().setLevel(Level.INFO);
+                } else {
+                    RootLogger.getRootLogger().setLevel(Level.DEBUG);
+                }
+            }
             if (options.helpRequested) {
                 commandLine.usage(out);
             } else {
