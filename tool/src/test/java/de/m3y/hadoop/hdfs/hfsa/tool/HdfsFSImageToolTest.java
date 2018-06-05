@@ -16,20 +16,20 @@ public class HdfsFSImageToolTest {
                 new HdfsFSImageTool.UserStats("foo_bar"), new HdfsFSImageTool.UserStats("fo_obar"),
                 new HdfsFSImageTool.UserStats("nofoobar"));
 
-        options.userFilter = "^foo.*";
+        options.userNameFilter = "^foo.*";
         List<HdfsFSImageTool.UserStats> filtered = HdfsFSImageTool.filter(list, options);
         assertEquals(2, filtered.size());
         assertEquals("foobar", filtered.get(0).userName);
         assertEquals("foo_bar", filtered.get(1).userName);
 
-        options.userFilter = "foo.*";
+        options.userNameFilter = "foo.*";
         filtered = HdfsFSImageTool.filter(list, options);
         assertEquals(3, filtered.size());
         assertEquals("foobar", filtered.get(0).userName);
         assertEquals("foo_bar", filtered.get(1).userName);
         assertEquals("nofoobar", filtered.get(2).userName);
 
-        options.userFilter = ".*bar.*";
+        options.userNameFilter = ".*bar.*";
         filtered = HdfsFSImageTool.filter(list, options);
         assertEquals(list.size(), filtered.size());
     }

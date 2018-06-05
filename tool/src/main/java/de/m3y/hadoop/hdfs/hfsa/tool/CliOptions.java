@@ -24,7 +24,7 @@ class CliOptions {
 
     @CommandLine.Option(names = {"-fun", "--filter-by-user"}, help = true,
             description = "Filter user name by <regexp>.")
-    String userFilter;
+    String userNameFilter;
 
     @CommandLine.Parameters(arity = "1", paramLabel = "FILE", index = "0",
             description = "FSImage file to process.")

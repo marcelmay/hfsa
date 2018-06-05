@@ -180,8 +180,8 @@ public class HdfsFSImageTool {
     static List<UserStats> filter(Collection<UserStats> userStats, CliOptions options) {
         List<UserStats> filtered = new ArrayList<>(userStats);
         // user name
-        if (null != options.userFilter && !options.userFilter.isEmpty()) {
-            Pattern userNamePattern = Pattern.compile(options.userFilter);
+        if (null != options.userNameFilter && !options.userNameFilter.isEmpty()) {
+            Pattern userNamePattern = Pattern.compile(options.userNameFilter);
             filtered.removeIf(u -> !userNamePattern.matcher(u.userName).find());
         }
         return filtered;
