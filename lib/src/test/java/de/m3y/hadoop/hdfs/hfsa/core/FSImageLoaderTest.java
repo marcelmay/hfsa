@@ -1,11 +1,9 @@
 package de.m3y.hadoop.hdfs.hfsa.core;
 
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +16,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * fsi_small.img test data content:
@@ -113,21 +112,20 @@ public class FSImageLoaderTest {
             }
         });
 
-        assertEquals(3, userNames.size());
-        assertEquals(3, groupNames.size());
-        assertEquals(14, sumDirs);
-        assertEquals(16, sumFiles);
-        assertEquals(0, sumSymLinks);
-        assertEquals(356409344L, sumSize);
+        assertThat(userNames.size()).isEqualTo(3);
+        assertThat(groupNames.size()).isEqualTo(3);
+        assertThat(sumDirs).isEqualTo(14);
+        assertThat(sumFiles).isEqualTo(16);
+        assertThat(sumSymLinks).isEqualTo(0);
+        assertThat(sumSize).isEqualTo(356409344L);
 
-        Set<String> expectedPaths = new HashSet<>(Arrays.asList(
+        String[] expectedPaths = new String[]{
                 "/", "/test1", "/test2", "/test3", "/test3/foo", "/test3/foo/bar", "/user", "/user/mm",
                 "/datalake", "/datalake/asset1", "/datalake/asset2",
-                "/datalake/asset3", "/datalake/asset3/subasset1", "/datalake/asset3/subasset2"));
-        assertTrue(paths.containsAll(expectedPaths));
-        assertEquals(expectedPaths.size(), paths.size());
+                "/datalake/asset3", "/datalake/asset3/subasset1", "/datalake/asset3/subasset2"};
+        assertThat(paths).containsExactlyInAnyOrder(expectedPaths);
 
-        Set<String> expectedFiles = new HashSet<>(Arrays.asList(
+        String[] expectedFiles = new String[]{
                 "/test_2KiB.img",
                 "/test3/test.img",
                 "/test3/test_160MiB.img",
@@ -144,18 +142,17 @@ public class FSImageLoaderTest {
                 "/datalake/asset3/subasset1/test_2MiB.img",
                 "/datalake/asset3/subasset2/test_2MiB.img",
                 "/datalake/asset3/test_2MiB.img"
-        ));
-        assertEquals(expectedFiles.size(), files.size());
-        assertTrue(expectedFiles.containsAll(files));
+        };
+        assertThat(files).containsExactlyInAnyOrder(expectedFiles);
 
-        assertEquals(1, loader.getINodeFromPath("/test3/foo/bar/test_40MiB.img").getFile().getReplication());
-        assertEquals(3, loader.getINodeFromPath("/test3/foo/bar/test_80MiB.img").getFile().getReplication());
-        assertEquals(5, loader.getINodeFromPath("/test3/foo/bar/test_4MiB.img").getFile().getReplication());
+        assertThat(loader.getINodeFromPath("/test3/foo/bar/test_40MiB.img").getFile().getReplication()).isEqualTo(1);
+        assertThat(loader.getINodeFromPath("/test3/foo/bar/test_80MiB.img").getFile().getReplication()).isEqualTo(3);
+        assertThat(loader.getINodeFromPath("/test3/foo/bar/test_4MiB.img").getFile().getReplication()).isEqualTo(5);
 
-        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/datalake")));
-        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/test3")));
-        assertEquals(3, loader.getNumChildren(loader.getINodeFromPath("/test3/foo")));
-        assertEquals(6, loader.getNumChildren(loader.getINodeFromPath("/test3/foo/bar/")));
+        assertThat(loader.getNumChildren(loader.getINodeFromPath("/datalake"))).isEqualTo(3);
+        assertThat(loader.getNumChildren(loader.getINodeFromPath("/test3"))).isEqualTo(3);
+        assertThat(loader.getNumChildren(loader.getINodeFromPath("/test3/foo"))).isEqualTo(3);
+        assertThat(loader.getNumChildren(loader.getINodeFromPath("/test3/foo/bar/"))).isEqualTo(6);
     }
 
     @Test
@@ -194,19 +191,18 @@ public class FSImageLoaderTest {
             }
         }, "/test3");
 
-        assertEquals(3, userNames.size());
-        assertEquals(3, groupNames.size());
-        assertEquals(3, sumDirs);
-        assertEquals(10, sumFiles);
-        assertEquals(0, sumSymLinks);
-        assertEquals(348017664L, sumSize);
+        assertThat(userNames.size()).isEqualTo(3);
+        assertThat(groupNames.size()).isEqualTo(3);
+        assertThat(sumDirs).isEqualTo(3);
+        assertThat(sumFiles).isEqualTo(10);
+        assertThat(sumSymLinks).isEqualTo(0);
+        assertThat(sumSize).isEqualTo(348017664L);
 
-        Set<String> expectedPaths = new HashSet<>(Arrays.asList(
-                "/test3", "/test3/foo", "/test3/foo/bar"));
-        assertTrue(paths.containsAll(expectedPaths));
-        assertEquals(expectedPaths.size(), paths.size());
+        String[] expectedPaths = new String[]{
+                "/test3", "/test3/foo", "/test3/foo/bar"};
+        assertThat(paths).containsExactlyInAnyOrder(expectedPaths);
 
-        Set<String> expectedFiles = new HashSet<>(Arrays.asList(
+        String[] expectedFiles = new String[]{
                 "/test3/test.img",
                 "/test3/test_160MiB.img",
                 "/test3/foo/test_1KiB.img",
@@ -217,118 +213,99 @@ public class FSImageLoaderTest {
                 "/test3/foo/bar/test_4MiB.img",
                 "/test3/foo/bar/test_5MiB.img",
                 "/test3/foo/bar/test_80MiB.img"
-        ));
-        assertEquals(expectedFiles.size(), files.size());
-        assertTrue(expectedFiles.containsAll(files));
-//        loader.getINodeFromPath("")
+        };
+        assertThat(files).containsExactlyInAnyOrder(expectedFiles);
     }
 
     @Test
     public void testGetInodeFromPath() throws IOException {
         final FsImageProto.INodeSection.INode rootNode = loader.getINodeFromPath("/");
         // Root node has empty name
-        assertEquals("", rootNode.getName().toStringUtf8());
-        assertEquals(FsImageProto.INodeSection.INode.Type.DIRECTORY, rootNode.getType());
+        assertThat(rootNode.getName().toStringUtf8()).isEqualTo("");
+        assertThat(rootNode.getType()).isEqualTo(FsImageProto.INodeSection.INode.Type.DIRECTORY);
 
         final FsImageProto.INodeSection.INode test3Node = loader.getINodeFromPath("/test3");
-        assertEquals("test3", test3Node.getName().toStringUtf8());
-        assertEquals(FsImageProto.INodeSection.INode.Type.DIRECTORY, test3Node.getType());
+        assertThat(test3Node.getName().toStringUtf8()).isEqualTo("test3");
+        assertThat(test3Node.getType()).isEqualTo(FsImageProto.INodeSection.INode.Type.DIRECTORY);
 
         final FsImageProto.INodeSection.INode test3FooBarNode = loader.getINodeFromPath("/test3/foo/bar");
-        assertEquals("bar", test3FooBarNode.getName().toStringUtf8());
-        assertEquals(FsImageProto.INodeSection.INode.Type.DIRECTORY, test3FooBarNode.getType());
+        assertThat(test3FooBarNode.getName().toStringUtf8()).isEqualTo("bar");
+        assertThat(test3FooBarNode.getType()).isEqualTo(FsImageProto.INodeSection.INode.Type.DIRECTORY);
 
         final FsImageProto.INodeSection.INode fileNode = loader.getINodeFromPath("/test3/test_160MiB.img");
-        assertEquals("test_160MiB.img", fileNode.getName().toStringUtf8());
-        assertEquals(FsImageProto.INodeSection.INode.Type.FILE, fileNode.getType());
+        assertThat(fileNode.getName().toStringUtf8()).isEqualTo("test_160MiB.img");
+        assertThat(fileNode.getType()).isEqualTo(FsImageProto.INodeSection.INode.Type.FILE);
 
         // Behave like java.io.File (POSIX), which allows redundant slashes
         final FsImageProto.INodeSection.INode rootRootNode = loader.getINodeFromPath("//");
-        assertEquals("", rootRootNode.getName().toStringUtf8());
+        assertThat(rootRootNode.getName().toStringUtf8()).isEqualTo("");
 
         final FsImageProto.INodeSection.INode r3Node = loader.getINodeFromPath("///");
-        assertEquals("", r3Node.getName().toStringUtf8());
+        assertThat(r3Node.getName().toStringUtf8()).isEqualTo("");
 
         final FsImageProto.INodeSection.INode r3FileNode = loader.getINodeFromPath("///test3//test_160MiB.img");
-        assertEquals("test_160MiB.img", r3FileNode.getName().toStringUtf8());
+        assertThat(r3FileNode.getName().toStringUtf8()).isEqualTo("test_160MiB.img");
     }
 
     @Test
     public void testGetChildPaths() throws IOException {
         List<String> childPaths = loader.getChildPaths("/");
-        List<String> expectedChildPaths = Arrays.asList("/user", "/test1", "/test2", "/test3", "/datalake");
-        assertTrue(expectedChildPaths.containsAll(childPaths));
-        assertTrue(childPaths.containsAll(expectedChildPaths));
+        String[] expectedChildPaths = new String[]{"/user", "/test1", "/test2", "/test3", "/datalake"};
+        assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
     }
 
     @Test
     public void testGetFileINodesInDirectory() throws IOException {
         // Directory with no files but another directory
         List<FsImageProto.INodeSection.INode> files = loader.getFileINodesInDirectory("/user");
-        assertEquals(0, files.size());
+        assertThat(files.size()).isEqualTo(0);
 
         // Directory with two files
         files = loader.getFileINodesInDirectory("/test3");
-        assertEquals(2, files.size());
+        assertThat(files.size()).isEqualTo(2);
         final List<String> fileNames = files.stream().map((n) -> n.getName().toStringUtf8()).collect(Collectors.toList());
-        assertTrue(fileNames.contains("test.img"));
-        assertTrue(fileNames.contains("test_160MiB.img"));
+        assertThat(fileNames).contains("test.img");
+        assertThat(fileNames).contains("test_160MiB.img");
 
         // Root has a single file
         files = loader.getFileINodesInDirectory("/");
-        assertEquals(1, files.size());
+        assertThat(files.size()).isEqualTo(1);
 
         // Invalid directory
-        try {
-            loader.getFileINodesInDirectory("/does-not-exist");
-            fail("Expected exception");
-        } catch (FileNotFoundException e) {
-            // ok
-        }
+        assertThatExceptionOfType(FileNotFoundException.class)
+                .isThrownBy(() -> loader.getFileINodesInDirectory("/does-not-exist"));
 
         // Invalid directory : path is file
-        try {
-            loader.getFileINodesInDirectory("/test3/test.img");
-            fail("Expected exception");
-        } catch (IllegalArgumentException e) {
-            // ok
-        }
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> loader.getFileINodesInDirectory("/test3/test.img"));
     }
 
     @Test
     public void testHasINode() throws IOException {
-        assertTrue(loader.hasINode("/user"));
-        assertTrue(loader.hasINode("/test3/test.img"));
-        assertFalse(loader.hasINode("/does-not-exist"));
-        try {
-            assertFalse(loader.hasINode("invalid-path"));
-            fail("Expected exception for invalid path");
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThat(loader.hasINode("/user")).isTrue();
+        assertThat(loader.hasINode("/test3/test.img")).isTrue();
+        assertThat(loader.hasINode("/does-not-exist")).isFalse();
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> loader.hasINode("invalid-path"));
 
-        assertTrue(loader.hasINode("/"));
-        assertTrue(loader.hasINode("//"));
+        assertThat(loader.hasINode("/")).isTrue();
+        assertThat(loader.hasINode("//")).isTrue();
     }
 
     @Test
     public void testHasChildren() throws IOException {
-        assertTrue(loader.hasChildren("/"));
-        assertTrue(loader.hasChildren(loader.getINodeFromPath("/").getId()));
-        assertTrue(loader.hasChildren("/user"));
-        assertTrue(loader.hasChildren(loader.getINodeFromPath("/user").getId()));
-        assertTrue(loader.hasChildren("/test3/foo/bar/"));
-        assertTrue(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar/").getId()));
-        assertTrue(loader.hasChildren("/test3/foo/bar"));
-        assertTrue(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar").getId()));
-        assertFalse(loader.hasChildren("/test1"));
-        assertFalse(loader.hasChildren(loader.getINodeFromPath("/test1").getId()));
-        try {
-            assertFalse(loader.hasChildren("/test3/nonexistent/path"));
-            fail("Expected FileNotFoundException");
-        } catch (FileNotFoundException e) {
-            // Expected
-        }
+        assertThat(loader.hasChildren("/")).isTrue();
+        assertThat(loader.hasChildren(loader.getINodeFromPath("/").getId())).isTrue();
+        assertThat(loader.hasChildren("/user")).isTrue();
+        assertThat(loader.hasChildren(loader.getINodeFromPath("/user").getId())).isTrue();
+        assertThat(loader.hasChildren("/test3/foo/bar/")).isTrue();
+        assertThat(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar/").getId())).isTrue();
+        assertThat(loader.hasChildren("/test3/foo/bar")).isTrue();
+        assertThat(loader.hasChildren(loader.getINodeFromPath("/test3/foo/bar").getId())).isTrue();
+        assertThat(loader.hasChildren("/test1")).isFalse();
+        assertThat(loader.hasChildren(loader.getINodeFromPath("/test1").getId())).isFalse();
+        assertThatExceptionOfType(FileNotFoundException.class)
+                .isThrownBy(() -> loader.hasChildren("/test3/nonexistent/path"));
     }
 
 }

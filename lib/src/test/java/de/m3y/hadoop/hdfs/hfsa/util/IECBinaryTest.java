@@ -2,8 +2,8 @@ package de.m3y.hadoop.hdfs.hfsa.util;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 public class IECBinaryTest {
     String[] formattedValues = {"0 B", "1 KiB", "1 KiB", "2 KiB", "3 MiB", "4 GiB", "5 TiB", "6 PiB", "60 PiB"};
@@ -17,31 +17,27 @@ public class IECBinaryTest {
     @Test
     public void testParse() {
         for (int i = 0; i < formattedValues.length; i++) {
-            assertEquals(rawValues[i], IECBinary.parse(formattedValues[i]));
+            assertThat(IECBinary.parse(formattedValues[i])).isEqualTo(rawValues[i]);
         }
 
-        assertEquals(0, IECBinary.parse("0"));
-        assertEquals(0, IECBinary.parse("0B"));
-        assertEquals(1024, IECBinary.parse("1  KiB"));
+        assertThat(IECBinary.parse("0")).isEqualTo(0);
+        assertThat(IECBinary.parse("0B")).isEqualTo(0);
+        assertThat(IECBinary.parse("1  KiB")).isEqualTo(1024);
 
         // Exceptional values
         for (String value : new String[]{"", " ", "KiB"}) {
-            try {
-                IECBinary.parse("KiB");
-                fail("Expected exception when parsing <" + value + ">");
-            } catch (IllegalArgumentException e) {
-                // expected
-            }
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> IECBinary.parse(value));
         }
     }
 
     @Test
     public void testFormat() {
         for (int i = 0; i < formattedValues.length; i++) {
-            assertEquals(formattedValues[i], IECBinary.format(rawValues[i]));
+            assertThat(IECBinary.format(rawValues[i])).isEqualTo(formattedValues[i]);
         }
 
-        assertEquals("1 KiB", IECBinary.format(1024 + 512 -1));
-        assertEquals("2 KiB", IECBinary.format(1024 + 512));
+        assertThat(IECBinary.format(1024 + 512 - 1)).isEqualTo("1 KiB");
+        assertThat(IECBinary.format(1024 + 512)).isEqualTo("2 KiB");
     }
 }

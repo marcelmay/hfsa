@@ -2,8 +2,7 @@ package de.m3y.hadoop.hdfs.hfsa.util;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SizeBucketTest {
 
@@ -11,74 +10,74 @@ public class SizeBucketTest {
     public void testBucketAdd() {
         SizeBucket sizeBucket = new SizeBucket();
 
-        assertEquals(0, sizeBucket.findMaxNumBucket());
-        assertEquals(0, sizeBucket.getBucketCounter(0));
-        assertEquals(0, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(0);
+        assertThat(sizeBucket.getBucketCounter(0)).isEqualTo(0);
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(0);
         sizeBucket.add(0L);
-        assertArrayEquals(new long[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, sizeBucket.get());
-        assertEquals(0, sizeBucket.findMaxNumBucket());
-        assertEquals(1, sizeBucket.getBucketCounter(0));
+        assertThat(sizeBucket.get()).isEqualTo(new long[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+        assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(0);
+        assertThat(sizeBucket.getBucketCounter(0)).isEqualTo(1);
         sizeBucket.add(1L);
-        assertArrayEquals(new long[]{1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, sizeBucket.get());
-        assertEquals(1, sizeBucket.findMaxNumBucket());
-        assertEquals(1, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.get()).isEqualTo(new long[]{1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+        assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(1);
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(1);
         long size = 1024L * 1024L;
         sizeBucket.add(size);
         final long[] expected = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        assertArrayEquals(expected, sizeBucket.get());
+        assertThat(sizeBucket.get()).isEqualTo(expected);
         for (int i = 0; i < sizeBucket.size() - 3; i++) {
             size *= 2;
             sizeBucket.add(size);
             expected[i + 3]++;
-            assertArrayEquals(expected, sizeBucket.get());
-            assertEquals(i + 3, sizeBucket.findMaxNumBucket());
+            assertThat(sizeBucket.get()).isEqualTo(expected);
+            assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(i + 3);
         }
 
         sizeBucket.add(0L);
         expected[0]++;
-        assertArrayEquals(expected, sizeBucket.get());
+        assertThat(sizeBucket.get()).isEqualTo(expected);
         sizeBucket.add(1L);
         expected[1]++;
-        assertArrayEquals(expected, sizeBucket.get());
+        assertThat(sizeBucket.get()).isEqualTo(expected);
         sizeBucket.add(1024L * 1024L);
         expected[2]++;
-        assertArrayEquals(expected, sizeBucket.get());
+        assertThat(sizeBucket.get()).isEqualTo(expected);
         sizeBucket.add(2L * 1024L * 1024L);
         expected[3]++;
-        assertArrayEquals(expected, sizeBucket.get());
+        assertThat(sizeBucket.get()).isEqualTo(expected);
 
         // Trigger resize
         sizeBucket.add(300L * 1024L * 1024L * 1024L);
-        assertArrayEquals(new long[]{
+        assertThat(sizeBucket.get()).isEqualTo(new long[]{
                 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1}, sizeBucket.get());
+                1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1});
     }
 
     @Test
     public void testMaxBucketCount() {
         SizeBucket sizeBucket = new SizeBucket();
-        assertEquals(0, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(0);
 
         sizeBucket.add(0L);
-        assertEquals(1, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(1);
         sizeBucket.add(0L);
-        assertEquals(2, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(2);
         sizeBucket.add(2L * 1024L * 1024L);
         sizeBucket.add(2L * 1024L * 1024L);
         sizeBucket.add(2L * 1024L * 1024L);
         sizeBucket.add(2L * 1024L * 1024L);
         sizeBucket.add(2L * 1024L * 1024L);
-        assertEquals(5, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(5);
         sizeBucket.add(100L * 1024L * 1024L);
         sizeBucket.add(100L * 1024L * 1024L);
-        assertEquals(5, sizeBucket.findMaxBucketCount());
+        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(5);
     }
 
     @Test
     public void testComputeBucketUpperBorders() {
         SizeBucket sizeBucket = new SizeBucket();
-        assertArrayEquals(new long[]{0 /* Default when empty*/}, sizeBucket.computeBucketUpperBorders());
-        sizeBucket.add( 1024L);
-        assertArrayEquals(new long[]{0 , 1024L * 1024L /* 1 MiB */}, sizeBucket.computeBucketUpperBorders());
+        assertThat(sizeBucket.computeBucketUpperBorders()).isEqualTo(new long[]{0 /* Default when empty*/});
+        sizeBucket.add(1024L);
+        assertThat(sizeBucket.computeBucketUpperBorders()).isEqualTo(new long[]{0, 1024L * 1024L /* 1 MiB */});
     }
 }

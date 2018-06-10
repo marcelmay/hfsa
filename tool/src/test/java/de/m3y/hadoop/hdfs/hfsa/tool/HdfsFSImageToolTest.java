@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class HdfsFSImageToolTest {
     @Test
@@ -18,19 +18,17 @@ public class HdfsFSImageToolTest {
 
         options.userNameFilter = "^foo.*";
         List<HdfsFSImageTool.UserStats> filtered = HdfsFSImageTool.filter(list, options);
-        assertEquals(2, filtered.size());
-        assertEquals("foobar", filtered.get(0).userName);
-        assertEquals("foo_bar", filtered.get(1).userName);
+        assertThat(filtered.size()).isEqualTo(2);
+        assertThat(filtered.get(0).userName).isEqualTo("foobar");
+        assertThat(filtered.get(1).userName).isEqualTo("foo_bar");
 
         options.userNameFilter = "foo.*";
         filtered = HdfsFSImageTool.filter(list, options);
-        assertEquals(3, filtered.size());
-        assertEquals("foobar", filtered.get(0).userName);
-        assertEquals("foo_bar", filtered.get(1).userName);
-        assertEquals("nofoobar", filtered.get(2).userName);
+        assertThat(filtered).extracting(userStats -> userStats.userName)
+                .isEqualTo(Arrays.asList("foobar", "foo_bar", "nofoobar"));
 
         options.userNameFilter = ".*bar.*";
         filtered = HdfsFSImageTool.filter(list, options);
-        assertEquals(list.size(), filtered.size());
+        assertThat(filtered).isEqualTo(list);
     }
 }
