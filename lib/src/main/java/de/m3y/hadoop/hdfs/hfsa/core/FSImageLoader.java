@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FSImageLoader {
     private static final Logger LOG = LoggerFactory.getLogger(FSImageLoader.class);
+    public static final String ROOT_PATH = "/";
 
     private final String[] stringTable;
     // byte representation of inodes, sorted by id
@@ -268,7 +269,7 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visit(FsVisitor visitor) throws IOException {
-        visit(visitor, "/");
+        visit(visitor, ROOT_PATH);
     }
 
     /**
@@ -281,7 +282,7 @@ public class FSImageLoader {
     public void visit(FsVisitor visitor, String path) throws IOException {
         // Visit path dir
         FsImageProto.INodeSection.INode pathNode = getINodeFromPath(path);
-        if ("/".equals(path)) {
+        if (ROOT_PATH.equals(path)) {
             visitor.onDirectory(pathNode, path);
         } else {
             // Need to strip current node path from path if not "/"
@@ -308,7 +309,7 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public void visitParallel(FsVisitor visitor) throws IOException {
-        visitParallel(visitor, "/");
+        visitParallel(visitor, ROOT_PATH);
     }
 
     /**
@@ -330,7 +331,7 @@ public class FSImageLoader {
                 if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                     dirs.add(inode);
                 } else {
-                    visit(visitor, inode, ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+                    visit(visitor, inode, (ROOT_PATH.equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
                 }
             }
             dirs.parallelStream().forEach(inode -> {
@@ -355,7 +356,7 @@ public class FSImageLoader {
             final long[] children = dirmap.get(inodeId);
             if (null != children) {
                 String newPath;
-                if ("/".equals(path)) {
+                if (ROOT_PATH.equals(path)) {
                     newPath = path + inode.getName().toStringUtf8();
                 } else {
                     newPath = path + '/' + inode.getName().toStringUtf8();
@@ -406,11 +407,11 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
-        Preconditions.checkArgument(path.startsWith("/"));
+        Preconditions.checkArgument(path.startsWith(ROOT_PATH));
         String normalizedPath = normalizePath(path);
         long id = INodeId.ROOT_INODE_ID;
         // Root node?
-        if ("/".equals(normalizedPath)) {
+        if (ROOT_PATH.equals(normalizedPath)) {
             return fromINodeId(id);
         }
 
@@ -484,7 +485,7 @@ public class FSImageLoader {
             throw new NoSuchElementException("No node found for path " + path);
         }
         List<String> childPaths = new ArrayList<>();
-        final String pathWithTrailingSlash = "/".equals(path) ? path : path + '/';
+        final String pathWithTrailingSlash = ROOT_PATH.equals(path) ? path : path + '/';
         for (long cid : children) {
             final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
             if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
