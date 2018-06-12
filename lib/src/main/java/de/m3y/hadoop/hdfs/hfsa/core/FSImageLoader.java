@@ -331,7 +331,7 @@ public class FSImageLoader {
                 if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                     dirs.add(inode);
                 } else {
-                    visit(visitor, inode, (ROOT_PATH.equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
+                    visit(visitor, inode, path);
                 }
             }
             dirs.parallelStream().forEach(inode -> {

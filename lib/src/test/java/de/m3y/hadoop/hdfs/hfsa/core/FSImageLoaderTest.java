@@ -7,6 +7,7 @@ import java.io.RandomAccessFile;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.permission.PermissionStatus;
@@ -69,19 +70,42 @@ public class FSImageLoaderTest {
 
     @Before
     public void setUp() throws IOException {
-        RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
-        loader = FSImageLoader.load(file);
+        try (RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r")) {
+            loader = FSImageLoader.load(file);
+        }
+    }
+
+    @Test
+    public void testLoadAndVisitParallel() throws IOException {
+        loadAndVisit((FSImageLoader loader, FsVisitor visitor) -> {
+            try {
+                loader.visitParallel(visitor);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
     }
 
     @Test
     public void testLoadAndVisit() throws IOException {
+        loadAndVisit((FSImageLoader loader, FsVisitor visitor) -> {
+            try {
+                loader.visit(visitor);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    private void loadAndVisit(BiConsumer<FSImageLoader, FsVisitor> handleVisit) throws IOException {
         Set<String> paths = new HashSet<>();
         Set<String> files = new HashSet<>();
 
-        loader.visit(new FsVisitor() {
+        final FsVisitor visitor = new FsVisitor() {
             @Override
             public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                final String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                final String fileName = (FSImageLoader.ROOT_PATH.equals(path) ? path : path + '/') +
+                        inode.getName().toStringUtf8();
                 LOG.debug(fileName);
                 files.add(fileName);
                 paths.add(path);
@@ -95,7 +119,8 @@ public class FSImageLoaderTest {
 
             @Override
             public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+                final String dirName = (FSImageLoader.ROOT_PATH.equals(path) ? path : path + '/') +
+                        inode.getName().toStringUtf8();
                 paths.add(dirName);
                 LOG.debug(dirName);
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
@@ -110,7 +135,8 @@ public class FSImageLoaderTest {
                 paths.add(path);
                 sumSymLinks++;
             }
-        });
+        };
+        handleVisit.accept(loader, visitor);
 
         assertThat(userNames.size()).isEqualTo(3);
         assertThat(groupNames.size()).isEqualTo(3);
