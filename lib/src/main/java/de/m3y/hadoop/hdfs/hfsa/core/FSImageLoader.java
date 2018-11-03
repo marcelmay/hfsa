@@ -133,9 +133,9 @@ public class FSImageLoader {
         try (FileInputStream fin = new FileInputStream(file.getFD())) {
             // Map to record INodeReference to the referred id
             ImmutableList<Long> refIdList = null;
-            String[] stringTable = null;
-            byte[][] inodes = null;
-            Map<Long, long[]> dirmap = null;
+            String[] stringTable =new String[]{};
+            byte[][] inodes = new byte[][]{};
+            Map<Long, long[]> dirmap = Collections.emptyMap();
 
             List<FsImageProto.FileSummary.Section> sections = summary.getSectionsList().stream()
                     .filter(s -> {

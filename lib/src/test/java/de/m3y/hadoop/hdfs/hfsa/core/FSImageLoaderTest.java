@@ -334,4 +334,27 @@ public class FSImageLoaderTest {
                 .isThrownBy(() -> loader.hasChildren("/test3/nonexistent/path"));
     }
 
+    @Test
+    public void testLoadEmptyFSImage() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile("src/test/resources/fsimage_0000000000000000000", "r")) {
+            final FSImageLoader fsImageLoader = FSImageLoader.load(file);
+            fsImageLoader.visit(new FsVisitor() {
+                @Override
+                public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+                    // Nothing
+                }
+
+                @Override
+                public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                    // Nothing
+                }
+
+                @Override
+                public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                    // Nothing
+                }
+            });
+        }
+    }
+
 }
