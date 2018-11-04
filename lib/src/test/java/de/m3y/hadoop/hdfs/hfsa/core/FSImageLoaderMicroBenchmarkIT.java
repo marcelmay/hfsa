@@ -58,7 +58,7 @@ public class FSImageLoaderMicroBenchmarkIT {
                 .mode(Mode.AverageTime)
                 .timeUnit(TimeUnit.MILLISECONDS)
                 .addProfiler(GCProfiler.class)
-                .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m")
+                .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m","-Dlog4j.configuration=log4j-it.xml")
                 .shouldDoGC(true)
                 .forks(1)
                 .build();
