@@ -53,6 +53,13 @@ FSImageLoader.load(file)
 
 - JDK 1.8
 - Hadoop 2.x
+- Maven 3.5.x (for building from source)
+
+### Building
+
+```
+mvn clean install
+```
 
 ### TODO
 
