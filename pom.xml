@@ -221,8 +221,8 @@
                     <configuration>
                         <links>
                             <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>http://hadoop.apache.org/docs/r2.7.5/api/</link>
-                            <link>https://google.github.io/guava/releases/21.0/api/docs/</link>
+                            <link>http://hadoop.apache.org/docs/r2.7.6/api/</link>
+                            <link>https://google.github.io/guava/releases/27.0-jre/api/docs/</link>
                         </links>
                     </configuration>
                 </plugin>
