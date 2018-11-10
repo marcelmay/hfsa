@@ -13,7 +13,7 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
 
 ## Example usage for library
 
-See [FSImageLoaderTest.java)](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
+See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
 
 The following lines visit all directory-, file- and symlink inodes:
 ```
