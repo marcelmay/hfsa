@@ -31,7 +31,9 @@ import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.permission.PermissionStatus;
+import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
+import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 import org.apache.hadoop.hdfs.server.namenode.*;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.LimitInputStream;
@@ -47,6 +49,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FSImageLoader {
     private static final Logger LOG = LoggerFactory.getLogger(FSImageLoader.class);
+    private static final BlockStoragePolicySuite BLOCK_STORAGE_POLICY_SUITE = BlockStoragePolicySuite.createDefaultSuite();
+
     public static final String ROOT_PATH = "/";
 
     private final String[] stringTable;
@@ -605,6 +609,14 @@ public class FSImageLoader {
 
     public static String toString(FsPermission permission) {
         return String.format("%o", permission.toShort());
+    }
+
+    public static BlockStoragePolicy getBlockStoragePolicy(FsImageProto.INodeSection.INodeFile iNodeFile) {
+        if(iNodeFile.hasStoragePolicyID()){
+            byte policyId = (byte) iNodeFile.getStoragePolicyID();
+            return BLOCK_STORAGE_POLICY_SUITE.getPolicy(policyId);
+        }
+        return BLOCK_STORAGE_POLICY_SUITE.getDefaultPolicy();
     }
 
     private FsImageProto.INodeSection.INode fromINodeId(final long id) throws IOException {

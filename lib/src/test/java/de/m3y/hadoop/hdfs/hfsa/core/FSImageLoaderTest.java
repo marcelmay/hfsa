@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.permission.PermissionStatus;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.junit.Before;
 import org.junit.Test;
@@ -332,6 +333,17 @@ public class FSImageLoaderTest {
         assertThat(loader.hasChildren(loader.getINodeFromPath("/test1").getId())).isFalse();
         assertThatExceptionOfType(FileNotFoundException.class)
                 .isThrownBy(() -> loader.hasChildren("/test3/nonexistent/path"));
+    }
+
+    @Test
+    public void testGetBlockStoragePolicy() throws IOException {
+        FsImageProto.INodeSection.INodeFile file = FsImageProto.INodeSection.INodeFile.newBuilder()
+                .setStoragePolicyID(HdfsConstants.ONESSD_STORAGE_POLICY_ID)
+                .build();
+        assertThat(FSImageLoader.getBlockStoragePolicy(file).getName()).isEqualTo(HdfsConstants.ONESSD_STORAGE_POLICY_NAME);
+
+        FsImageProto.INodeSection.INode iNode = loader.getINodeFromPath("/test_2KiB.img");
+        assertThat(FSImageLoader.getBlockStoragePolicy(iNode.getFile()).getId()).isEqualTo(HdfsConstants.HOT_STORAGE_POLICY_ID);
     }
 
     @Test
