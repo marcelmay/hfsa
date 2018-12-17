@@ -252,7 +252,6 @@ public class HdfsFSImageTool {
             @Override
             public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
                 System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
-                overallStats.sumSymLinks++;
                 final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
                 if (symlink.hasPermission()) {
                     PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
@@ -261,20 +260,21 @@ public class HdfsFSImageTool {
                     final String groupName = p.getGroupName();
                     final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                     synchronized (groupStat) {
-                        groupStat.sumDirectories++;
+                        groupStat.sumSymLinks++;
                     }
 
                     // User stats
                     final String userName = p.getUserName();
                     final UserStats userStat = report.getOrCreateUserStats(userName);
                     synchronized (userStat) {
-                        userStat.sumDirectories++;
+                        userStat.sumSymLinks++;
                     }
 
                     synchronized (overallStats) {
-                        overallStats.sumDirectories++;
+                        overallStats.sumSymLinks++;
                     }
                 }
+                overallStats.sumSymLinks++;
 
             }
         }, dirPath);
