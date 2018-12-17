@@ -34,6 +34,11 @@ public class HdfsFSImageTool {
         long sumFileSize;
         final SizeBucket fileSizeBuckets;
 
+        static final Comparator<AbstractStats> COMPARATOR_BLOCKS = Comparator.comparingLong(o -> o.sumBlocks);
+        static final Comparator<AbstractStats> COMPARATOR_SUM_FILES = Comparator.comparingLong(o -> o.sumFiles);
+        static final Comparator<AbstractStats> COMPARATOR_SUM_DIRECTORIES = Comparator.comparingLong(o -> o.sumDirectories.longValue());
+        static final Comparator<AbstractStats> COMPARATOR_SUM_FILE_SIZE = Comparator.comparingLong(o -> o.sumFileSize);
+
         AbstractStats() {
             fileSizeBuckets = new SizeBucket();
         }
@@ -139,7 +144,7 @@ public class HdfsFSImageTool {
                 "                  |              |           |            |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (GroupStats stat : sorted(report.groupStats.values(), options.sort)) {
+        for (GroupStats stat : sortStats(report.groupStats.values(), options.sort.getComparator())) {
             out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
                     stat.groupName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
@@ -159,7 +164,7 @@ public class HdfsFSImageTool {
                 "                  |              |           |            |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
-        for (UserStats stat : sorted(userStats, options.sort)) {
+        for (UserStats stat : sortStats(userStats, options.sort.getComparator())) {
             out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
                     stat.userName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
@@ -263,22 +268,7 @@ public class HdfsFSImageTool {
         return report;
     }
 
-    private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, CliOptions.SortOption sortOption) {
-        switch (sortOption) {
-            case bc:
-                return sortStats(values, Comparator.comparingLong(o -> o.sumBlocks));
-            case fc:
-                return sortStats(values, Comparator.comparingLong(o3 -> o3.sumFiles));
-            case dc:
-                return sortStats(values, Comparator.comparingLong(o2 -> o2.sumDirectories.longValue()));
-            case fs: // default sort
-                return sortStats(values, Comparator.comparingLong(o -> o.sumFileSize));
-            default:
-                throw new IllegalArgumentException("Unsupported sort option " + sortOption);
-        }
-    }
-
-    private static <T extends AbstractStats> List<T> sortStats(Collection<T> values, Comparator<T> comparator) {
+    private static <T extends AbstractStats> List<T> sortStats(Collection<T> values, Comparator<? super AbstractStats> comparator) {
         final List<T> list = new ArrayList<>(values);
         list.sort(comparator);
         return list;
