@@ -28,7 +28,7 @@ public class HdfsFSImageTool {
 
     abstract static class AbstractStats {
         long sumFiles;
-        final LongAdder  sumDirectories = new LongAdder();
+        final LongAdder sumDirectories = new LongAdder();
         final LongAdder sumSymLinks = new LongAdder();
         long sumBlocks;
         long sumFileSize;
@@ -83,11 +83,6 @@ public class HdfsFSImageTool {
     static void doPerform(CliOptions options, PrintStream out) throws IOException {
         RandomAccessFile file = new RandomAccessFile(options.fsImageFile, "r");
         final FSImageLoader loader = FSImageLoader.load(file);
-
-        // Check options
-        if (null == options.dirs || options.dirs.length == 0) {
-            options.dirs = new String[]{"/"}; // Default
-        }
 
         for (String dir : options.dirs) {
             LOG.info("Visiting " + dir + " ...");
@@ -268,15 +263,15 @@ public class HdfsFSImageTool {
         return report;
     }
 
-    private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, String sortOption) {
+    private static <T extends AbstractStats> Collection<T> sorted(Collection<T> values, CliOptions.SortOption sortOption) {
         switch (sortOption) {
-            case "bc":
+            case bc:
                 return sortStats(values, Comparator.comparingLong(o -> o.sumBlocks));
-            case "fc":
+            case fc:
                 return sortStats(values, Comparator.comparingLong(o3 -> o3.sumFiles));
-            case "dc":
+            case dc:
                 return sortStats(values, Comparator.comparingLong(o2 -> o2.sumDirectories.longValue()));
-            case "fs": // default sort
+            case fs: // default sort
                 return sortStats(values, Comparator.comparingLong(o -> o.sumFileSize));
             default:
                 throw new IllegalArgumentException("Unsupported sort option " + sortOption);

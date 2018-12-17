@@ -18,9 +18,22 @@ class CliOptions {
             )
     boolean[] verbose;
 
+    /**
+     * Sort options.
+     */
+    enum SortOption {
+        /** file size */
+        fs,
+        /** file count */
+        fc,
+        /** directory count */
+        dc,
+        /** block count */
+        bc
+    }
     @CommandLine.Option(names = {"-s", "--sort"}, help = true,
-            description = "Sort by <fs> size (default), <fc> file count, <dc> directory count or <bc> block count.")
-    String sort = "fs";
+            description = "Sort by <fs> size, <fc> file count, <dc> directory count or <bc> block count (default: ${DEFAULT-VALUE}). ")
+    SortOption sort = SortOption.fs;
 
     @CommandLine.Option(names = {"-fun", "--filter-by-user"}, help = true,
             description = "Filter user name by <regexp>.")
@@ -31,6 +44,6 @@ class CliOptions {
     File fsImageFile;
 
     @CommandLine.Parameters(paramLabel = "DIRS", index="1..*",
-            description = "Directory paths to start traversing.")
+            description = "Directory path(s) to start traversing (default: ${DEFAULT-VALUE}).")
     String[] dirs = new String[]{"/"};
 }
