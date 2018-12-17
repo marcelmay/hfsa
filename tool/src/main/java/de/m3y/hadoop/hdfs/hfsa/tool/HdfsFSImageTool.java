@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
@@ -64,21 +65,17 @@ public class HdfsFSImageTool {
 
         Report(String dirPath) {
             this.dirPath = dirPath;
-            groupStats = new HashMap<>();
-            userStats = new HashMap<>();
+            groupStats = new ConcurrentHashMap<>();
+            userStats = new ConcurrentHashMap<>();
             overallStats = new OverallStats();
         }
 
         GroupStats getOrCreateGroupStats(String groupName) {
-            synchronized (groupStats) {
-                return groupStats.computeIfAbsent(groupName, GroupStats::new);
-            }
+            return groupStats.computeIfAbsent(groupName, GroupStats::new);
         }
 
         UserStats getOrCreateUserStats(String userName) {
-            synchronized (userStats) {
-                return userStats.computeIfAbsent(userName, UserStats::new);
-            }
+            return userStats.computeIfAbsent(userName, UserStats::new);
         }
     }
 
