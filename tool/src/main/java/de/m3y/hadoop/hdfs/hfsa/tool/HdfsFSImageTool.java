@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
@@ -27,8 +28,8 @@ public class HdfsFSImageTool {
 
     abstract static class AbstractStats {
         long sumFiles;
-        long sumDirectories;
-        long sumSymLinks;
+        final LongAdder  sumDirectories = new LongAdder();
+        final LongAdder sumSymLinks = new LongAdder();
         long sumBlocks;
         long sumFileSize;
         final SizeBucket fileSizeBuckets;
@@ -127,7 +128,7 @@ public class HdfsFSImageTool {
 
         out.println(String.format("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s",
                 report.groupStats.size(), report.userStats.size(),
-                overallStats.sumDirectories, overallStats.sumSymLinks,
+                overallStats.sumDirectories.longValue(), overallStats.sumSymLinks.longValue(),
                 overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
                 overallStats.sumBlocks,
                 String.format(bucketFormatValue,
@@ -145,7 +146,7 @@ public class HdfsFSImageTool {
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (GroupStats stat : sorted(report.groupStats.values(), options.sort)) {
             out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
-                    stat.groupName, stat.sumDirectories, stat.sumSymLinks,
+                    stat.groupName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
@@ -165,7 +166,7 @@ public class HdfsFSImageTool {
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (UserStats stat : sorted(userStats, options.sort)) {
             out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
-                    stat.userName, stat.sumDirectories, stat.sumSymLinks,
+                    stat.userName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
@@ -233,48 +234,33 @@ public class HdfsFSImageTool {
                 // Group stats
                 final String groupName = p.getGroupName();
                 final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
-                synchronized (groupStat) {
-                    groupStat.sumDirectories++;
-                }
+                groupStat.sumDirectories.increment();
 
                 // User stats
                 final String userName = p.getUserName();
                 final UserStats userStat = report.getOrCreateUserStats(userName);
-                synchronized (userStat) {
-                    userStat.sumDirectories++;
-                }
+                userStat.sumDirectories.increment();
 
-                synchronized (overallStats) {
-                    overallStats.sumDirectories++;
-                }
+                overallStats.sumDirectories.increment();
             }
 
             @Override
             public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
                 System.out.println("Ignoring symlink: " + inode.getName().toStringUtf8());
                 final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
-                if (symlink.hasPermission()) {
-                    PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
+                PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
 
-                    // Group stats
-                    final String groupName = p.getGroupName();
-                    final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
-                    synchronized (groupStat) {
-                        groupStat.sumSymLinks++;
-                    }
+                // Group stats
+                final String groupName = p.getGroupName();
+                final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
+                groupStat.sumSymLinks.increment();
 
-                    // User stats
-                    final String userName = p.getUserName();
-                    final UserStats userStat = report.getOrCreateUserStats(userName);
-                    synchronized (userStat) {
-                        userStat.sumSymLinks++;
-                    }
+                // User stats
+                final String userName = p.getUserName();
+                final UserStats userStat = report.getOrCreateUserStats(userName);
+                userStat.sumSymLinks.increment();
 
-                    synchronized (overallStats) {
-                        overallStats.sumSymLinks++;
-                    }
-                }
-                overallStats.sumSymLinks++;
+                overallStats.sumSymLinks.increment();
 
             }
         }, dirPath);
@@ -289,7 +275,7 @@ public class HdfsFSImageTool {
             case "fc":
                 return sortStats(values, Comparator.comparingLong(o3 -> o3.sumFiles));
             case "dc":
-                return sortStats(values, Comparator.comparingLong(o2 -> o2.sumDirectories));
+                return sortStats(values, Comparator.comparingLong(o2 -> o2.sumDirectories.longValue()));
             case "fs": // default sort
                 return sortStats(values, Comparator.comparingLong(o -> o.sumFileSize));
             default:
@@ -311,7 +297,7 @@ public class HdfsFSImageTool {
         try {
             commandLine.parse(args);
             if (null != options.verbose) {
-                if(options.verbose.length==1) {
+                if (options.verbose.length == 1) {
                     RootLogger.getRootLogger().setLevel(Level.INFO);
                 } else {
                     RootLogger.getRootLogger().setLevel(Level.DEBUG);
