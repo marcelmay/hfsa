@@ -53,7 +53,7 @@ public class FSImageLoader {
 
     public static final String ROOT_PATH = "/";
 
-    private final String[] stringTable;
+    private final SerialNumberManager.StringTable stringTable;
     // byte representation of inodes, sorted by id
     private final byte[][] inodes;
     // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
@@ -104,7 +104,7 @@ public class FSImageLoader {
         }
     }
 
-    private FSImageLoader(String[] stringTable, byte[][] inodes,
+    private FSImageLoader(SerialNumberManager.StringTable stringTable, byte[][] inodes,
                           Map<Long, long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
@@ -137,7 +137,8 @@ public class FSImageLoader {
         try (FileInputStream fin = new FileInputStream(file.getFD())) {
             // Map to record INodeReference to the referred id
             ImmutableList<Long> refIdList = null;
-            String[] stringTable =new String[]{};
+            //String[] stringTable =new String[]{};
+            SerialNumberManager.StringTable stringTable = null;
             byte[][] inodes = new byte[][]{};
             Map<Long, long[]> dirmap = Collections.emptyMap();
 
@@ -251,16 +252,18 @@ public class FSImageLoader {
         return inodes;
     }
 
-    static String[] loadStringTable(InputStream in) throws
+    static SerialNumberManager.StringTable loadStringTable(InputStream in) throws
             IOException {
         long start = System.currentTimeMillis();
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection
                 .parseDelimitedFrom(in);
-        String[] stringTable = new String[s.getNumEntry() + 1];
+        LOG.info("Loading " + s.getNumEntry() + " strings");
+        SerialNumberManager.StringTable stringTable =
+                SerialNumberManager.newStringTable(s.getNumEntry(), s.getMaskBits());
         for (int i = 0; i < s.getNumEntry(); ++i) {
             FsImageProto.StringTableSection.Entry e = FsImageProto
                     .StringTableSection.Entry.parseDelimitedFrom(in);
-            stringTable[e.getId()] = e.getStr();
+            stringTable.put(e.getId(), e.getStr());
         }
         LOG.info("Loaded {} strings [{}ms]", s.getNumEntry(), System.currentTimeMillis() - start);
         return stringTable;
@@ -599,12 +602,25 @@ public class FSImageLoader {
         return FSImageFormatPBINode.Loader.loadPermission(permission, stringTable);
     }
 
-    public static long getFileSize(FsImageProto.INodeSection.INodeFile f) {
+    public static long getFileSize(FsImageProto.INodeSection.INodeFile file) {
         long size = 0;
-        for (HdfsProtos.BlockProto p : f.getBlocksList()) {
+        for (HdfsProtos.BlockProto p : file.getBlocksList()) {
             size += p.getNumBytes();
         }
         return size;
+    }
+
+    /**
+     * Gets the file replication honouring erasure coding.
+     *
+     * @param file the file
+     * @return the replication
+     */
+    public static int getFileReplication(FsImageProto.INodeSection.INodeFile file) {
+        if (file.hasErasureCodingPolicyID()) {
+            return INodeFile.DEFAULT_REPL_FOR_STRIPED_BLOCKS;
+        }
+        return file.getReplication();
     }
 
     public static String toString(FsPermission permission) {
@@ -612,7 +628,7 @@ public class FSImageLoader {
     }
 
     public static BlockStoragePolicy getBlockStoragePolicy(FsImageProto.INodeSection.INodeFile iNodeFile) {
-        if(iNodeFile.hasStoragePolicyID()){
+        if (iNodeFile.hasStoragePolicyID()) {
             byte policyId = (byte) iNodeFile.getStoragePolicyID();
             return BLOCK_STORAGE_POLICY_SUITE.getPolicy(policyId);
         }

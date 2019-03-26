@@ -19,7 +19,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class FSImageLoaderMicroBenchmarkIT {
 
     static RandomAccessFile openFile() throws FileNotFoundException {
-        return new RandomAccessFile("src/test/resources/fsi_small.img", "r");
+        return new RandomAccessFile("src/test/resources/fsi_small_h3_2.img", "r");
     }
 
     @State(Scope.Benchmark)

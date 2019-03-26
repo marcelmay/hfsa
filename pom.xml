@@ -75,17 +75,22 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs</artifactId>
-                <version>2.7.7</version>
+                <version>3.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-hdfs-client</artifactId>
+                <version>3.2.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
-                <version>2.7.7</version>
+                <version>3.2.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>27.0.1-jre</version>
+                <version>27.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>commons-collections</groupId>
@@ -217,12 +222,12 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.0.1</version>
+                    <version>3.1.0</version>
                     <configuration>
                         <links>
                             <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>http://hadoop.apache.org/docs/r2.7.6/api/</link>
-                            <link>https://google.github.io/guava/releases/27.0-jre/api/docs/</link>
+                            <link>http://hadoop.apache.org/docs/r3.2.0/api/</link>
+                            <link>https://google.github.io/guava/releases/27.1-jre/api/docs/</link>
                         </links>
                     </configuration>
                 </plugin>

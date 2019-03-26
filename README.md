@@ -52,7 +52,7 @@ FSImageLoader.load(file)
 ### Requirements
 
 - JDK 1.8
-- Hadoop 2.x
+- Hadoop 2.x or 3.x
 - Maven 3.5.x (for building from source)
 
 ### Building
