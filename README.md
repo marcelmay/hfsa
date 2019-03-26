@@ -52,7 +52,8 @@ FSImageLoader.load(file)
 ### Requirements
 
 - JDK 1.8
-- Hadoop 2.x or 3.x
+- Hadoop 2.x or 3.x fsimage 
+  Note: hfsa lib version 1.2+ has Hadoop 3.x dependencies but still work for Hadoop 2.x fsimages
 - Maven 3.5.x (for building from source)
 
 ### Building
