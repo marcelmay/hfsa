@@ -16,15 +16,14 @@ import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.RootLogger;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * HDFS FSImage Tool extracts a summary of HDFS Usage from fsimage.
  */
 public class HdfsFSImageTool {
-    private static final Logger LOG = getLogger(HdfsFSImageTool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HdfsFSImageTool.class);
 
     abstract static class AbstractStats {
         long sumFiles;
@@ -90,10 +89,10 @@ public class HdfsFSImageTool {
         final FSImageLoader loader = FSImageLoader.load(file);
 
         for (String dir : options.dirs) {
-            LOG.info("Visiting " + dir + " ...");
+            LOG.info("Visiting {} ...", dir);
             long start = System.currentTimeMillis();
             final Report report = computeReport(loader, dir);
-            LOG.info("Visiting finished [" + (System.currentTimeMillis() - start) + "ms].");
+            LOG.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
             doSummary(options, report, out);
         }

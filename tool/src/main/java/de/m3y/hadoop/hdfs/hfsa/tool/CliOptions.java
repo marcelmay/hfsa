@@ -46,7 +46,7 @@ class CliOptions {
             this.comparator = comparator;
         }
 
-        public Comparator<? super HdfsFSImageTool.AbstractStats> getComparator() {
+        public Comparator<HdfsFSImageTool.AbstractStats> getComparator() {
             return comparator;
         }}
 

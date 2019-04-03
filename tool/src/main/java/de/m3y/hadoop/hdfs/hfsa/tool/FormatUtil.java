@@ -81,7 +81,8 @@ class FormatUtil {
             padded = values;
         } else {
             padded = new long[length];
-            System.arraycopy(values, 0, padded, 0, padded.length);
+            int len = Math.min(padded.length, values.length);
+            System.arraycopy(values, 0, padded, 0, len);
         }
         return Arrays.stream(padded).boxed().toArray();
     }

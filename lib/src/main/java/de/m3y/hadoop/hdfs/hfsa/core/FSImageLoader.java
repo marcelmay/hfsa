@@ -137,7 +137,6 @@ public class FSImageLoader {
         try (FileInputStream fin = new FileInputStream(file.getFD())) {
             // Map to record INodeReference to the referred id
             ImmutableList<Long> refIdList = null;
-            //String[] stringTable =new String[]{};
             SerialNumberManager.StringTable stringTable = null;
             byte[][] inodes = new byte[][]{};
             Map<Long, long[]> dirmap = Collections.emptyMap();
@@ -257,7 +256,7 @@ public class FSImageLoader {
         long start = System.currentTimeMillis();
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection
                 .parseDelimitedFrom(in);
-        LOG.info("Loading " + s.getNumEntry() + " strings");
+        LOG.debug("Loading {} strings", s.getNumEntry());
         SerialNumberManager.StringTable stringTable =
                 SerialNumberManager.newStringTable(s.getNumEntry(), s.getMaskBits());
         for (int i = 0; i < s.getNumEntry(); ++i) {
