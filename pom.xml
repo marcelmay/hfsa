@@ -120,7 +120,7 @@
             <dependency>
                 <groupId>info.picocli</groupId>
                 <artifactId>picocli</artifactId>
-                <version>3.9.5</version>
+                <version>3.9.6</version>
             </dependency>
             <!-- Testing -->
             <dependency>
