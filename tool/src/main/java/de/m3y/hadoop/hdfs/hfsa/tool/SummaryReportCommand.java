@@ -22,10 +22,9 @@ import picocli.CommandLine;
  * Computes a user/group file system summary
  */
 @CommandLine.Command(name = "summary",
-        mixinStandardHelpOptions = true,
         showDefaultValues = true
         )
-class SummaryReport extends HdfsFSImageTool.BaseCommand {
+class SummaryReportCommand implements Runnable {
 
     abstract static class AbstractStats {
         long sumFiles;
@@ -93,13 +92,11 @@ class SummaryReport extends HdfsFSImageTool.BaseCommand {
         return list;
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(SummaryReport.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SummaryReportCommand.class);
+
     @CommandLine.ParentCommand
     HdfsFSImageTool.MainCommand mainCommand;
 
-    @CommandLine.Option(names = {"-fun", "--filter-by-user"},
-            description = "Filter user name by <regexp>.")
-    String userNameFilter;
 
     /**
      * Sort options.
@@ -143,7 +140,7 @@ class SummaryReport extends HdfsFSImageTool.BaseCommand {
         LOG.info("SummaryReport.run");
 
         if (!mainCommand.fsImageFile.exists()) {
-            HdfsFSImageTool.err.println("No such fsimage file " + mainCommand.fsImageFile);
+            mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
             return;
         }
 
@@ -155,7 +152,7 @@ class SummaryReport extends HdfsFSImageTool.BaseCommand {
                 final Report report = computeReport(loader, dir);
                 LOG.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
-                doSummary(report, HdfsFSImageTool.out);
+                doSummary(report, mainCommand.out);
             }
         }
 
@@ -166,7 +163,7 @@ class SummaryReport extends HdfsFSImageTool.BaseCommand {
             RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r");
             return FSImageLoader.load(file);
         } catch (FileNotFoundException e) {
-            HdfsFSImageTool.err.println("No such fsimage file " + mainCommand.fsImageFile);
+            mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
             return null;
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -230,7 +227,7 @@ class SummaryReport extends HdfsFSImageTool.BaseCommand {
 
         // Users
         out.println();
-        final List<UserStats> userStats = filterByUserName(report.userStats.values(), userNameFilter);
+        final List<UserStats> userStats = filterByUserName(report.userStats.values(), mainCommand.userNameFilter);
         out.println(String.format(
                 "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
                 userStats.size()));
