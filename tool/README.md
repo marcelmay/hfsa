@@ -31,7 +31,7 @@ Commands:
 Runs summary command by default.
 ```
 
-#### Summary command
+#### Summary sub command
 ```
 Usage: hfsa-tool summary [-s=<sort>]
   -s, --sort=<sort>   Sort by <fs> size, <fc> file count, <dc> directory count or

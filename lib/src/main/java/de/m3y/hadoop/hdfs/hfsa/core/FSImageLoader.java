@@ -413,7 +413,8 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
-        Preconditions.checkArgument(path.startsWith(ROOT_PATH));
+        Preconditions.checkArgument(path.startsWith(ROOT_PATH),
+                "Expected path <" + path + "> to start with " + ROOT_PATH);
         String normalizedPath = normalizePath(path);
         long id = INodeId.ROOT_INODE_ID;
         // Root node?
