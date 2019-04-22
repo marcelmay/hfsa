@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.protobuf.CodedInputStream;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -127,8 +126,6 @@ public class FSImageLoader {
      * @throws IOException if failed to load fsimage.
      */
     public static FSImageLoader load(RandomAccessFile file) throws IOException {
-        Configuration conf = new Configuration();
-
         if (!FSImageUtil.checkFileFormat(file)) {
             throw new IOException("Unrecognized FSImage " + file);
         }
@@ -158,7 +155,7 @@ public class FSImageLoader {
                         LOG.debug("Skipping empty section {} of length {}", s.getName(), s.getLength());
                     }
                 } else {
-                    InputStream is = FSImageUtil.wrapInputStreamForCompression(conf, summary.getCodec(),
+                    InputStream is = FSImageUtil.wrapInputStreamForCompression(null, summary.getCodec(),
                             new BufferedInputStream(new LimitInputStream(fin, s.getLength()), 8 * 8192 /* 64KiB */));
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
