@@ -33,7 +33,10 @@ class FormatUtil {
     }
 
     static int numberOfDigits(long l) {
-        return (int) Math.ceil(Math.log(l) / Math.log(10d));
+        if (l == 0) {
+            return 1;
+        }
+        return ((int) Math.ceil(Math.log10(l + 0.5)));
     }
 
     static int[] numberOfDigits(long[] numbers) {

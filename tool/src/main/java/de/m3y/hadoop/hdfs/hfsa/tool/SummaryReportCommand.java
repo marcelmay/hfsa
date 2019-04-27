@@ -1,9 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.tool;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.RandomAccessFile;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
@@ -14,17 +12,18 @@ import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 /**
  * Computes a user/group file system summary
  */
 @CommandLine.Command(name = "summary",
+        description = "Generates an HDFS usage summary (default command if no other command specified)",
+        mixinStandardHelpOptions = true,
+        helpCommand = true,
         showDefaultValues = true
-        )
-class SummaryReportCommand implements Runnable {
+)
+class SummaryReportCommand extends AbstractReportCommand {
 
     abstract static class AbstractStats {
         long sumFiles;
@@ -92,12 +91,6 @@ class SummaryReportCommand implements Runnable {
         return list;
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(SummaryReportCommand.class);
-
-    @CommandLine.ParentCommand
-    HdfsFSImageTool.MainCommand mainCommand;
-
-
     /**
      * Sort options.
      */
@@ -137,40 +130,22 @@ class SummaryReportCommand implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("SummaryReport.run");
-
-        if (!mainCommand.fsImageFile.exists()) {
-            mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
-            return;
-        }
-
         final FSImageLoader loader = loadFsImage();
         if (null != loader) {
             for (String dir : mainCommand.dirs) {
-                LOG.info("Visiting {} ...", dir);
+                log.info("Visiting {} ...", dir);
                 long start = System.currentTimeMillis();
                 final Report report = computeReport(loader, dir);
-                LOG.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
+                log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
-                doSummary(report, mainCommand.out);
+                doSummary(report);
             }
         }
-
     }
 
-    private FSImageLoader loadFsImage() {
-        try {
-            RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r");
-            return FSImageLoader.load(file);
-        } catch (FileNotFoundException e) {
-            mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
-            return null;
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 
-    void doSummary(Report report, PrintStream out) {
+    void doSummary(Report report) {
+        PrintStream out = mainCommand.out;
         // Overall
         final OverallStats overallStats = report.overallStats;
 

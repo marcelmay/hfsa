@@ -27,11 +27,11 @@ public class HdfsFSImageTool {
         )
         boolean[] verbose = new boolean[0];
 
-        @Parameters(paramLabel = "FILE",  arity = "1",
+        @Parameters(paramLabel = "FILE", arity = "1",
                 description = "FSImage file to process.")
         File fsImageFile;
 
-        @Option(names = {"-p","--path"},
+        @Option(names = {"-p", "--path"},
                 split = ",",
                 description = "Directory path(s) to start traversing (default: ${DEFAULT-VALUE}).")
         String[] dirs = new String[]{"/"};
@@ -47,7 +47,7 @@ public class HdfsFSImageTool {
             mixinStandardHelpOptions = true,
             versionProvider = VersionProvider.class,
             showDefaultValues = true,
-            subcommands = {SummaryReportCommand.class}
+            subcommands = {SummaryReportCommand.class, SmallFilesReportCommand.class}
     )
     static class MainCommand extends BaseCommand {
         PrintStream out = HdfsFSImageTool.out;
@@ -70,20 +70,31 @@ public class HdfsFSImageTool {
         final CommandLine.AbstractParseResultHandler<List<Object>> handler =
                 new CommandLine.RunLast().useOut(out).useAnsi(ansi);
         final CommandLine.DefaultExceptionHandler<List<Object>> exceptionHandler =
-                new CommandLine.DefaultExceptionHandler<List<Object>>().useErr(err).useAnsi(ansi);
+                new CommandLine.DefaultExceptionHandler<List<Object>>() {
+                    @Override
+                    public List<Object> handleExecutionException(CommandLine.ExecutionException ex,
+                                                                 CommandLine.ParseResult parseResult) {
+                        if (RootLogger.getRootLogger().isInfoEnabled()) {
+                            // Includes stack trace. Only show with verbosity enabled.
+                            return super.handleExecutionException(ex, parseResult);
+                        }
+                        err.println("Error: " + ex.getCause().getMessage());
+                        err.println("Exiting - use option [-v] for more verbose details.");
+                        return returnResultOrExit(null);
+                    }
+                }.useErr(err).useAnsi(ansi);
 
         CommandLine cmd = new CommandLine(new MainCommand());
         CommandLine.ParseResult parseResult = null;
+        final CommandLine.Model.OptionSpec verbose;
         try {
             parseResult = cmd.parseArgs(args);
-
-            final CommandLine.Model.OptionSpec verbose = parseResult.matchedOption("v");
+            verbose = parseResult.matchedOption("v");
             if (null != verbose) {
                 handleVerboseMode(verbose);
             }
 
             handler.handleParseResult(parseResult);
-
         } catch (CommandLine.ParameterException ex) {
             exceptionHandler.handleParseException(ex, args);
         } catch (CommandLine.ExecutionException ex) {

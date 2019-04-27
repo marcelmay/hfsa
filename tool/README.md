@@ -27,7 +27,9 @@ Usage: hfsa-tool [-hV] [-v]... [-fun=<userNameFilter>] [-p=<dirs>[,
                     Default: []
   -V, --version   Print version information and exit.
 Commands:
-  summary
+  summary         Generates an HDFS usage summary (default command if no other
+                    command specified)
+  smallfiles, sf  Reports on small file usage
 Runs summary command by default.
 ```
 
@@ -37,6 +39,16 @@ Usage: hfsa-tool summary [-s=<sort>]
   -s, --sort=<sort>   Sort by <fs> size, <fc> file count, <dc> directory count or
                         <bc> block count (default: fs).
                         Default: fs
+```
+
+#### Small files report sub command
+```
+Usage: hfsa-tool smallfiles [-hV] [--fsl=<fileSizeLimitBytes>]
+Reports on small file usage
+      --fsl, -fileSizeLimit=<fileSizeLimitBytes>
+                  Small file size limit in bytes (IEC binary formatted, eg 2MiB).
+                    Every file less equals the limit counts as a small file.
+                    Default: 2097152
 ```
 
 ### Requirements 

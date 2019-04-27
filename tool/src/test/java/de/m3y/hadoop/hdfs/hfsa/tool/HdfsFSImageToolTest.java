@@ -48,7 +48,9 @@ public class HdfsFSImageToolTest {
                         "                    Default: []\n" +
                         "  -V, --version   Print version information and exit.\n" +
                         "Commands:\n" +
-                        "  summary\n" +
+                        "  summary         Generates an HDFS usage summary (default command if no other\n" +
+                        "                    command specified)\n" +
+                        "  smallfiles, sf  Reports on small file usage\n" +
                         "Runs summary command by default.\n"
 
                 );
