@@ -52,7 +52,7 @@ FSImageLoader.load(file)
 ### Requirements
 
 - JDK 1.8
-- Hadoop 2.x or 3.x fsimage 
+- Hadoop 2.x or 3.x fsimage  
   Note: hfsa lib version 1.2+ has Hadoop 3.x dependencies but still work for Hadoop 2.x fsimages
 - Maven 3.5.x (for building from source)
 
@@ -62,18 +62,17 @@ FSImageLoader.load(file)
 mvn clean install
 ```
 
-### TODO
+### Roadmap
 
-- Documentation
-- error handling and cli options for tool
-- report and config options for topk/sorting/selection/...
+- Configurable strategy for fast-but-memory-intensive or slow-but-memory-friendly fsimage loading
+- Report and config options for topk/sorting/selection/...
 
 ### License
 
 HFSA is released under the [Apache 2.0 license](LICENSE.txt).
 
 ```
-Copyright 2017-2018 Marcel May and project contributors
+Copyright 2017-2019 Marcel May and project contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
