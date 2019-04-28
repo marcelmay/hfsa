@@ -23,14 +23,18 @@ abstract class AbstractReportCommand implements Runnable {
         try {
             RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r");
             log.info("Starting loading " + mainCommand.fsImageFile + " of size " + IECBinary.format(file.length()));
-            if (file.length() > Runtime.getRuntime().totalMemory()) {
+
+            // Warn about insufficient memory
+            final long maxJvmMemory = Runtime.getRuntime().maxMemory();
+            if (file.length() > maxJvmMemory) {
                 mainCommand.out.println();
-                mainCommand.out.println("Warning - Probably insufficient JVM max memory of "+IECBinary.format(Runtime.getRuntime().totalMemory()));
+                mainCommand.out.println("Warning - Probably insufficient JVM max memory of "+IECBinary.format(maxJvmMemory));
                 mainCommand.out.println("          Recommended heap for FSImage size of " + IECBinary.format(file.length()) +
                         " is " + IECBinary.format(file.length() * 2L));
                 mainCommand.out.println("          Set JAVA_OPTS=\"-Xmx=...\"");
                 mainCommand.out.println();
             }
+
             return FSImageLoader.load(file);
         } catch (FileNotFoundException e) {
             mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
