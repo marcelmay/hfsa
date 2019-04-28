@@ -90,7 +90,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
             try {
                 return IECBinary.parse(value);
             } catch (Exception ex) {
-                throw new CommandLine.TypeConversionException("'" + value + "' is not a IEC binary formatted value");
+                throw new CommandLine.TypeConversionException("'" + value + "' is not an IEC binary formatted value");
             }
         }
     }
@@ -136,10 +136,10 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         final List<UserReport> userReports = report.listUserReports();
         if (!userReports.isEmpty()) {
             int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "Sum small files".length());
-            int maxWidthUserName = Math.max(FormatUtil.numberOfDigits(
+            int maxWidthUserName = Math.max(
                     userReports.stream()
                             .max(Comparator.comparingLong(o -> o.userName.length()))
-                            .orElseThrow(IllegalStateException::new).userName.length()),
+                            .orElseThrow(IllegalStateException::new).userName.length() ,
                     "Username".length()
             );
             out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s%n",
