@@ -27,6 +27,8 @@ public class SmallFilesReportCommandTest {
                 .isEqualTo("\n" +
                         "Small files report (< 2 MiB)\n" +
                         "\n" +
+                        "Overall small files : 3\n" +
+                        "\n" +
                         "Username | Sum small files\n" +
                         "--------------------------\n" +
                         "mm       |               2\n" +
@@ -50,6 +52,9 @@ public class SmallFilesReportCommandTest {
         assertThat(byteArrayOutputStream.toString())
                 .isEqualTo("\n" +
                         "Small files report (< 2 MiB)\n" +
+                        "\n" +
+                        "Overall small files         : 3\n" +
+                        "User (filtered) small files : 2\n" +
                         "\n" +
                         "Username | Sum small files\n" +
                         "--------------------------\n" +

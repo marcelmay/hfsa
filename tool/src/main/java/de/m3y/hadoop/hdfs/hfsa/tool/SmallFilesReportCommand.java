@@ -52,17 +52,26 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
     static class Report {
         final Map<String, UserReport> userToReport = new ConcurrentHashMap<>();
-        long sumSmallFiles;
+        // Overall directory path to small file count mapping
+        final Map<String, LongAdder> pathToCounter = new ConcurrentHashMap<>();
+        long sumUserSmallFiles;
+        long sumOverallSmallFiles;
 
         UserReport getOrCreateUserReport(String userName) {
             return userToReport.computeIfAbsent(userName, UserReport::new);
         }
 
+        void increment(String path) {
+            pathToCounter.computeIfAbsent(path, v -> new LongAdder()).increment();
+        }
+
         void computeStats() {
             for (UserReport userReport : userToReport.values()) {
                 userReport.computeStats();
-                sumSmallFiles += userReport.sumSmallFiles;
+                sumUserSmallFiles += userReport.sumSmallFiles;
             }
+
+            sumOverallSmallFiles = pathToCounter.values().stream().mapToLong(LongAdder::longValue).sum();
 
             // TODO: Filter user report by min small files limit?
         }
@@ -114,6 +123,16 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         out.println();
         out.println("Small files report (< " + IECBinary.format(fileSizeLimitBytes) + ")");
         out.println();
+
+        final String formatSpec = FormatUtil.numberOfDigitsFormat(report.sumOverallSmallFiles) + "%n";
+        if(report.sumOverallSmallFiles != report.sumUserSmallFiles) {
+            out.printf("Overall small files         : " + formatSpec, report.sumOverallSmallFiles);
+            out.printf("User (filtered) small files : " + formatSpec, +report.sumUserSmallFiles);
+        } else {
+            out.printf("Overall small files : " + formatSpec, report.sumOverallSmallFiles);
+        }
+        out.println();
+
         final List<UserReport> userReports = report.listUserReports();
         if (!userReports.isEmpty()) {
             int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "Sum small files".length());
@@ -151,6 +170,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                         if (userNameFilter.test(p.getUserName())) {
                             report.getOrCreateUserReport(p.getUserName()).increment(path);
                         }
+                        report.increment(path);
                     }
                 }
 

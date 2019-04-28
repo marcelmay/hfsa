@@ -32,6 +32,11 @@ class FormatUtil {
         return buf.toString();
     }
 
+    static String numberOfDigitsFormat(long value) {
+        int l = numberOfDigits(value);
+        return "%"+l+"."+l+"s";
+    }
+
     static int numberOfDigits(long l) {
         if (l == 0) {
             return 1;
