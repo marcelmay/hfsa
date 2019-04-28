@@ -26,7 +26,7 @@ abstract class AbstractReportCommand implements Runnable {
             if (file.length() > Runtime.getRuntime().totalMemory()) {
                 mainCommand.out.println();
                 mainCommand.out.println("Warning - Probably insufficient JVM max memory of "+IECBinary.format(Runtime.getRuntime().totalMemory()));
-                mainCommand.out.println("          Recommended heap for FSImage size is " + IECBinary.format(file.length()) +
+                mainCommand.out.println("          Recommended heap for FSImage size of " + IECBinary.format(file.length()) +
                         " is " + IECBinary.format(file.length() * 2L));
                 mainCommand.out.println("          Set JAVA_OPTS=\"-Xmx=...\"");
                 mainCommand.out.println();

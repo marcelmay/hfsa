@@ -135,7 +135,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
         final List<UserReport> userReports = report.listUserReports();
         if (!userReports.isEmpty()) {
-            int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "Sum small files".length());
+            int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "#Small files".length());
             int maxWidthUserName = Math.max(
                     userReports.stream()
                             .max(Comparator.comparingLong(o -> o.userName.length()))
@@ -143,7 +143,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                     "Username".length()
             );
             out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s%n",
-                    "Username", "Sum small files");
+                    "Username", "#Small files");
             out.println(FormatUtil.padRight('-', maxWidthUserName + 3 + maxWidthSum));
             final String format = "%-" + maxWidthUserName + "s | %" + maxWidthSum + "d%n";
             for (UserReport userReport : userReports) {

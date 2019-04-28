@@ -29,10 +29,10 @@ public class SmallFilesReportCommandTest {
                         "\n" +
                         "Overall small files : 3\n" +
                         "\n" +
-                        "Username | Sum small files\n" +
-                        "--------------------------\n" +
-                        "mm       |               2\n" +
-                        "root     |               1\n"
+                        "Username | #Small files\n" +
+                        "-----------------------\n" +
+                        "mm       |            2\n" +
+                        "root     |            1\n"
                 );
     }
 
@@ -56,9 +56,9 @@ public class SmallFilesReportCommandTest {
                         "Overall small files         : 3\n" +
                         "User (filtered) small files : 2\n" +
                         "\n" +
-                        "Username | Sum small files\n" +
-                        "--------------------------\n" +
-                        "mm       |               2\n"
+                        "Username | #Small files\n" +
+                        "-----------------------\n" +
+                        "mm       |            2\n"
                 );
     }
 
