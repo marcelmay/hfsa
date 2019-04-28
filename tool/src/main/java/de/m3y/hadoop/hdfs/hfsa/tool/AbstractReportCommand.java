@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
+import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -21,6 +22,15 @@ abstract class AbstractReportCommand implements Runnable {
     protected FSImageLoader loadFsImage() {
         try {
             RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r");
+            log.info("Starting loading " + mainCommand.fsImageFile + " of size " + IECBinary.format(file.length()));
+            if (file.length() > Runtime.getRuntime().totalMemory()) {
+                mainCommand.out.println();
+                mainCommand.out.println("Warning - Probably insufficient JVM max memory of "+IECBinary.format(Runtime.getRuntime().totalMemory()));
+                mainCommand.out.println("          Recommended heap for FSImage size is " + IECBinary.format(file.length()) +
+                        " is " + IECBinary.format(file.length() * 2L));
+                mainCommand.out.println("          Set JAVA_OPTS=\"-Xmx=...\"");
+                mainCommand.out.println();
+            }
             return FSImageLoader.load(file);
         } catch (FileNotFoundException e) {
             mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);

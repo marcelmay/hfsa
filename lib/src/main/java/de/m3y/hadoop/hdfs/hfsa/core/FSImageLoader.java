@@ -127,7 +127,7 @@ public class FSImageLoader {
      */
     public static FSImageLoader load(RandomAccessFile file) throws IOException {
         if (!FSImageUtil.checkFileFormat(file)) {
-            throw new IOException("Unrecognized FSImage " + file);
+            throw new IOException("Unrecognized FSImage format");
         }
 
         FsImageProto.FileSummary summary = FSImageUtil.loadSummary(file);

@@ -66,7 +66,7 @@
                             <id>hfsa-tool</id>
                         </program>
                     </programs>
-                    <extraJvmArguments>-Xmx3g -XX:+UseG1GC</extraJvmArguments>
+                    <extraJvmArguments>-server -XX:+UseG1GC</extraJvmArguments>
                     <repositoryLayout>flat</repositoryLayout>
                     <repositoryName>lib</repositoryName>
                     <projectArtifactFirstInClassPath>true</projectArtifactFirstInClassPath>
