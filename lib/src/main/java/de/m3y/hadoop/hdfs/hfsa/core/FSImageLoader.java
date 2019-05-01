@@ -18,13 +18,14 @@
 package de.m3y.hadoop.hdfs.hfsa.core;
 
 import java.io.*;
+import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.ImmutableLongArray;
 import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
@@ -34,10 +35,15 @@ import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 import org.apache.hadoop.hdfs.server.namenode.*;
+import org.apache.hadoop.hdfs.server.namenode.FSImageFormatProtobuf.SectionName;
+import org.apache.hadoop.hdfs.server.namenode.FsImageProto.FileSummary;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.LimitInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.hadoop.hdfs.server.namenode.SerialNumberManager.StringTable;
+import static org.apache.hadoop.hdfs.server.namenode.SerialNumberManager.newStringTable;
 
 /**
  * FSImageLoader loads fsimage and provide methods to return
@@ -45,6 +51,9 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Note: This class is based on the original FSImageLoader from Hadoop:
  * https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java
+ * <p>
+ * An introduction to FSImage design:
+ * https://jira.apache.org/jira/browse/HDFS-5698
  */
 public class FSImageLoader {
     private static final Logger LOG = LoggerFactory.getLogger(FSImageLoader.class);
@@ -52,7 +61,7 @@ public class FSImageLoader {
 
     public static final String ROOT_PATH = "/";
 
-    private final SerialNumberManager.StringTable stringTable;
+    private final StringTable stringTable;
     // byte representation of inodes, sorted by id
     private final byte[][] inodes;
     // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
@@ -83,27 +92,7 @@ public class FSImageLoader {
         return input.readUInt64();
     }
 
-    private static final SectionComparator SECTION_COMPARATOR = new SectionComparator();
-
-    private static class SectionComparator implements Comparator<FsImageProto.FileSummary.Section> {
-        @Override
-        public int compare(FsImageProto.FileSummary.Section s1,
-                           FsImageProto.FileSummary.Section s2) {
-            FSImageFormatProtobuf.SectionName n1 =
-                    FSImageFormatProtobuf.SectionName.fromString(s1.getName());
-            FSImageFormatProtobuf.SectionName n2 =
-                    FSImageFormatProtobuf.SectionName.fromString(s2.getName());
-            if (n1 == null) {
-                return n2 == null ? 0 : -1;
-            } else if (n2 == null) {
-                return -1;
-            } else {
-                return n1.ordinal() - n2.ordinal();
-            }
-        }
-    }
-
-    private FSImageLoader(SerialNumberManager.StringTable stringTable, byte[][] inodes,
+    private FSImageLoader(StringTable stringTable, byte[][] inodes,
                           Map<Long, long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
@@ -118,6 +107,46 @@ public class FSImageLoader {
         this.dirmap = dirmap;
     }
 
+    private static FileSummary.Section findSectionByName(
+            List<FileSummary.Section> sectionList, SectionName sectionName) {
+        // Section list is ~ 10 elements, so no map for efficient lookup required
+        for (FileSummary.Section section : sectionList) {
+            if (sectionName.name().equals(section.getName())) {
+                return section;
+            }
+        }
+        throw new IllegalStateException("No such section of name " + sectionName + " found in " +
+                sectionList.stream().map(FileSummary.Section::getName).collect(Collectors.joining(", ")));
+    }
+
+    @FunctionalInterface
+    interface IOFunction<R> {
+        R apply(InputStream t) throws IOException;
+    }
+
+    private static <T> T loadSection(FileInputStream fin,
+                                     String codec,
+                                     FileSummary.Section section,
+                                     IOFunction<T> f) {
+        long startTime = System.currentTimeMillis();
+        try {
+            FileChannel fc = fin.getChannel();
+            fc.position(section.getOffset());
+
+            InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
+                    new BufferedInputStream(new LimitInputStream(fin, section.getLength()), 8 * 8192 /* 64KiB */));
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Loading section {} of {} bytes", section.getName(), section.getLength());
+            }
+
+            final T apply = f.apply(is);
+            LOG.info("Loaded section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
+            return apply;
+        } catch (IOException ex) {
+            throw new IllegalStateException("Can not load fsimage section " + section.getName(), ex);
+        }
+    }
+
     /**
      * Load fsimage into the memory.
      *
@@ -130,60 +159,30 @@ public class FSImageLoader {
             throw new IOException("Unrecognized FSImage format");
         }
 
-        FsImageProto.FileSummary summary = FSImageUtil.loadSummary(file);
+        FileSummary summary = FSImageUtil.loadSummary(file);
+        String codec = summary.getCodec();
         try (FileInputStream fin = new FileInputStream(file.getFD())) {
-            // Map to record INodeReference to the referred id
-            ImmutableList<Long> refIdList = null;
-            SerialNumberManager.StringTable stringTable = null;
-            byte[][] inodes = new byte[][]{};
-            Map<Long, long[]> dirmap = Collections.emptyMap();
+            // Section list only
+            final List<FileSummary.Section> sectionsList = summary.getSectionsList();
 
-            List<FsImageProto.FileSummary.Section> sections = summary.getSectionsList().stream()
-                    .filter(s -> {
-                        final String sectionName = s.getName();
-                        return FSImageFormatProtobuf.SectionName.STRING_TABLE.name().equals(sectionName) ||
-                                FSImageFormatProtobuf.SectionName.INODE.name().equals(sectionName) ||
-                                FSImageFormatProtobuf.SectionName.INODE_REFERENCE.name().equals(sectionName) ||
-                                FSImageFormatProtobuf.SectionName.INODE_DIR.name().equals(sectionName);
-                    })
-                    .sorted(SECTION_COMPARATOR)
-                    .collect(Collectors.toList());
-            for (FsImageProto.FileSummary.Section s : sections) {
-                fin.getChannel().position(s.getOffset());
-                if (s.getLength() == 0) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Skipping empty section {} of length {}", s.getName(), s.getLength());
-                    }
-                } else {
-                    InputStream is = FSImageUtil.wrapInputStreamForCompression(null, summary.getCodec(),
-                            new BufferedInputStream(new LimitInputStream(fin, s.getLength()), 8 * 8192 /* 64KiB */));
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Loading section {} of length {}", s.getName(), s.getLength());
-                    }
-                    switch (FSImageFormatProtobuf.SectionName.fromString(s.getName())) {
-                        case STRING_TABLE:
-                            stringTable = loadStringTable(is);
-                            break;
-                        case INODE:
-                            inodes = loadINodeSection(is);
-                            break;
-                        case INODE_REFERENCE:
-                            refIdList = loadINodeReferenceSection(is);
-                            break;
-                        case INODE_DIR:
-                            dirmap = loadINodeDirectorySection(is, refIdList);
-                            break;
-                        default:
-                            throw new IllegalStateException("Unexpected section " + s.getName());
-                    }
-                }
-            }
+            FileSummary.Section sectionStringTable = findSectionByName(sectionsList, SectionName.STRING_TABLE);
+            StringTable stringTable = loadSection(fin, codec, sectionStringTable, FSImageLoader::loadStringTable);
+
+            FileSummary.Section sectionInodeRef = findSectionByName(sectionsList, SectionName.INODE_REFERENCE);
+            ImmutableLongArray refIdList = loadSection(fin, codec, sectionInodeRef, FSImageLoader::loadINodeReferenceSection);
+
+            FileSummary.Section sectionInode = findSectionByName(sectionsList, SectionName.INODE);
+            byte[][] inodes = loadSection(fin, codec, sectionInode, FSImageLoader::loadINodeSection); // SLOW!!!
+
+            FileSummary.Section sectionInodeDir = findSectionByName(sectionsList, SectionName.INODE_DIR);
+            Map<Long, long[]> dirmap = loadSection(fin, codec, sectionInodeDir,
+                    (InputStream is) -> FSImageLoader.loadINodeDirectorySection(is, refIdList)); // SLOW!!!
+
             return new FSImageLoader(stringTable, inodes, dirmap);
         }
     }
 
-    private static Map<Long, long[]> loadINodeDirectorySection
-            (InputStream in, List<Long> refIdList)
+    private static Map<Long, long[]> loadINodeDirectorySection(InputStream in, ImmutableLongArray refIdList)
             throws IOException {
         long start = System.currentTimeMillis();
         Map<Long, long[]> dirs = Maps.newHashMapWithExpectedSize(512 * 1014 /* 512K */);
@@ -210,10 +209,9 @@ public class FSImageLoader {
         return dirs;
     }
 
-    private static ImmutableList<Long> loadINodeReferenceSection(InputStream in)
-            throws IOException {
+    private static ImmutableLongArray loadINodeReferenceSection(InputStream in) throws IOException {
         long startTime = System.currentTimeMillis();
-        ImmutableList.Builder<Long> builder = ImmutableList.builder();
+        ImmutableLongArray.Builder builder = ImmutableLongArray.builder();
         long counter = 0;
         while (true) {
             FsImageProto.INodeReferenceSection.INodeReference e =
@@ -229,8 +227,8 @@ public class FSImageLoader {
         return builder.build();
     }
 
-    private static byte[][] loadINodeSection(InputStream in)
-            throws IOException {
+    // Slow
+    private static byte[][] loadINodeSection(InputStream in) throws IOException {
         long start = System.currentTimeMillis();
         FsImageProto.INodeSection s = FsImageProto.INodeSection
                 .parseDelimitedFrom(in);
@@ -246,16 +244,15 @@ public class FSImageLoader {
         Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
         LOG.info("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
         return inodes;
+
     }
 
-    static SerialNumberManager.StringTable loadStringTable(InputStream in) throws
-            IOException {
+    static StringTable loadStringTable(InputStream in) throws IOException {
         long start = System.currentTimeMillis();
-        FsImageProto.StringTableSection s = FsImageProto.StringTableSection
-                .parseDelimitedFrom(in);
+        FsImageProto.StringTableSection s = FsImageProto.StringTableSection.parseDelimitedFrom(in);
         LOG.debug("Loading {} strings", s.getNumEntry());
-        SerialNumberManager.StringTable stringTable =
-                SerialNumberManager.newStringTable(s.getNumEntry(), s.getMaskBits());
+        StringTable stringTable =
+                newStringTable(s.getNumEntry(), s.getMaskBits());
         for (int i = 0; i < s.getNumEntry(); ++i) {
             FsImageProto.StringTableSection.Entry e = FsImageProto
                     .StringTableSection.Entry.parseDelimitedFrom(in);
