@@ -128,6 +128,9 @@ public class FSImageLoader {
                                      String codec,
                                      FileSummary.Section section,
                                      IOFunction<T> f) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Loading fsimage section {} of {} bytes", section.getName(), section.getLength());
+        }
         long startTime = System.currentTimeMillis();
         try {
             FileChannel fc = fin.getChannel();
@@ -135,12 +138,9 @@ public class FSImageLoader {
 
             InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
                     new BufferedInputStream(new LimitInputStream(fin, section.getLength()), 8 * 8192 /* 64KiB */));
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Loading section {} of {} bytes", section.getName(), section.getLength());
-            }
 
             final T apply = f.apply(is);
-            LOG.info("Loaded section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
+            LOG.info("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
             return apply;
         } catch (IOException ex) {
             throw new IllegalStateException("Can not load fsimage section " + section.getName(), ex);
@@ -184,7 +184,6 @@ public class FSImageLoader {
 
     private static Map<Long, long[]> loadINodeDirectorySection(InputStream in, ImmutableLongArray refIdList)
             throws IOException {
-        long start = System.currentTimeMillis();
         Map<Long, long[]> dirs = Maps.newHashMapWithExpectedSize(512 * 1014 /* 512K */);
         while (true) {
             FsImageProto.INodeDirectorySection.DirEntry e =
@@ -205,14 +204,12 @@ public class FSImageLoader {
             }
             dirs.put(e.getParent(), l);
         }
-        LOG.info("Loaded {} directories [{}ms]", dirs.size(), System.currentTimeMillis() - start);
+        LOG.info("Loaded {} directories", dirs.size());
         return dirs;
     }
 
     private static ImmutableLongArray loadINodeReferenceSection(InputStream in) throws IOException {
-        long startTime = System.currentTimeMillis();
         ImmutableLongArray.Builder builder = ImmutableLongArray.builder();
-        long counter = 0;
         while (true) {
             FsImageProto.INodeReferenceSection.INodeReference e =
                     FsImageProto.INodeReferenceSection.INodeReference
@@ -220,11 +217,11 @@ public class FSImageLoader {
             if (e == null) {
                 break;
             }
-            ++counter;
             builder.add(e.getReferredId());
         }
-        LOG.info("Loaded {} inode references [{}ms]", counter, System.currentTimeMillis() - startTime);
-        return builder.build();
+        final ImmutableLongArray array = builder.build();
+        LOG.info("Loaded {} inode references ", array.length());
+        return array;
     }
 
     // Slow
@@ -248,9 +245,7 @@ public class FSImageLoader {
     }
 
     static StringTable loadStringTable(InputStream in) throws IOException {
-        long start = System.currentTimeMillis();
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection.parseDelimitedFrom(in);
-        LOG.debug("Loading {} strings", s.getNumEntry());
         StringTable stringTable =
                 newStringTable(s.getNumEntry(), s.getMaskBits());
         for (int i = 0; i < s.getNumEntry(); ++i) {
@@ -258,7 +253,7 @@ public class FSImageLoader {
                     .StringTableSection.Entry.parseDelimitedFrom(in);
             stringTable.put(e.getId(), e.getStr());
         }
-        LOG.info("Loaded {} strings [{}ms]", s.getNumEntry(), System.currentTimeMillis() - start);
+        LOG.info("Loaded {} strings into string table", s.getNumEntry());
         return stringTable;
     }
 
