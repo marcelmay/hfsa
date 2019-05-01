@@ -20,15 +20,16 @@ abstract class AbstractReportCommand implements Runnable {
     protected HdfsFSImageTool.MainCommand mainCommand;
 
     protected FSImageLoader loadFsImage() {
-        try {
-            RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r");
-            log.info("Starting loading " + mainCommand.fsImageFile + " of size " + IECBinary.format(file.length()));
+        try (RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r")) {
+            if(log.isInfoEnabled()) {
+                log.info("Starting loading {} of size {}", mainCommand.fsImageFile, IECBinary.format(file.length()));
+            }
 
             // Warn about insufficient memory
             final long maxJvmMemory = Runtime.getRuntime().maxMemory();
             if (file.length() > maxJvmMemory) {
                 mainCommand.out.println();
-                mainCommand.out.println("Warning - Probably insufficient JVM max memory of "+IECBinary.format(maxJvmMemory));
+                mainCommand.out.println("Warning - Probably insufficient JVM max memory of " + IECBinary.format(maxJvmMemory));
                 mainCommand.out.println("          Recommended heap for FSImage size of " + IECBinary.format(file.length()) +
                         " is " + IECBinary.format(file.length() * 2L));
                 mainCommand.out.println("          Set JAVA_OPTS=\"-Xmx=...\"");
