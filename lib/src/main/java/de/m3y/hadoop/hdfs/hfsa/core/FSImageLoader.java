@@ -463,8 +463,8 @@ public class FSImageLoader {
             return true;
         } catch (FileNotFoundException e) {
             // not found
+            return false;
         }
-        return false;
     }
 
     /**
@@ -639,7 +639,7 @@ public class FSImageLoader {
                 return FsImageProto.INodeSection.INode.parseFrom(inodeBytes);
             }
         }
-        return null;
+        throw new IllegalStateException("Can not find inode by id "+id);
     }
 
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {
