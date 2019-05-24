@@ -8,9 +8,6 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- *
- */
 public class SmallFilesReportCommandTest {
     @Test
     public void testRun() {
@@ -32,7 +29,17 @@ public class SmallFilesReportCommandTest {
                         "Username | #Small files\n" +
                         "-----------------------\n" +
                         "mm       |            2\n" +
-                        "root     |            1\n"
+                        "root     |            1\n" +
+                        "\n" +
+                        "Username | Small files hotspots (top 10 count/path)\n" +
+                        "---------------------------------------------------\n" +
+                        "      mm |            2 | /\n" +
+                        "         |            1 | /test3\n" +
+                        "---------------------------------------------------\n" +
+                        "    root |            1 | /\n" +
+                        "         |            1 | /test3\n" +
+                        "         |            1 | /test3/foo\n" +
+                        "---------------------------------------------------\n"
                 );
     }
 
@@ -58,7 +65,13 @@ public class SmallFilesReportCommandTest {
                         "\n" +
                         "Username | #Small files\n" +
                         "-----------------------\n" +
-                        "mm       |            2\n"
+                        "mm       |            2\n" +
+                        "\n" +
+                        "Username | Small files hotspots (top 10 count/path)\n" +
+                        "---------------------------------------------------\n" +
+                        "      mm |            2 | /\n" +
+                        "         |            1 | /test3\n" +
+                        "---------------------------------------------------\n"
                 );
     }
 

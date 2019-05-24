@@ -3,10 +3,7 @@ package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Predicate;
@@ -48,6 +45,25 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         void computeStats() {
             sumSmallFiles = pathToCounter.values().stream().mapToLong(LongAdder::longValue).sum();
         }
+
+        public void aggregatePaths() {
+            final ArrayList<Map.Entry<String, LongAdder>> entries = new ArrayList<>(pathToCounter.entrySet());
+            final Map<String, LongAdder> aggregates = new HashMap<>();
+            for (Map.Entry<String, LongAdder> entry : entries) {
+                String path = entry.getKey();
+                if (FSImageLoader.ROOT_PATH.equals(path)) {
+                    continue;
+                }
+                long smallFilesCount = entry.getValue().longValue();
+                for (int idx = path.lastIndexOf('/'); idx >= 0; idx = path.lastIndexOf('/', idx - 1)) {
+                    String parentPath = (0 == idx ? FSImageLoader.ROOT_PATH : path.substring(0, idx));
+                    aggregates.computeIfAbsent(parentPath, v -> new LongAdder()).add(smallFilesCount);
+                }
+            }
+            for (Map.Entry<String, LongAdder> entry : aggregates.entrySet()) {
+                pathToCounter.computeIfAbsent(entry.getKey(), v -> new LongAdder()).add(entry.getValue().longValue());
+            }
+        }
     }
 
     static class Report {
@@ -76,10 +92,11 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
             // TODO: Filter user report by min small files limit?
         }
 
+        static final Comparator<UserReport> COMPARATOR_USER_REPORT = Comparator.comparingLong(o -> o.sumSmallFiles);
+
         List<UserReport> listUserReports() {
-            final Comparator<UserReport> comparator = Comparator.comparingLong(o -> o.sumSmallFiles);
             return userToReport.values().stream()
-                    .sorted(comparator.reversed())
+                    .sorted(COMPARATOR_USER_REPORT.reversed())
                     .collect(Collectors.toList());
         }
     }
@@ -100,7 +117,12 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                     "Every file less equals the limit counts as a small file.",
             converter = IECBinaryConverter.class
     )
-    long fileSizeLimitBytes = 1024L * 1024L * 2L; // 2 MiB
+    long fileSizeLimitBytes = 1024L * 1024L * 2L; // 2 MiB as default
+
+    @CommandLine.Option(names = {"-userPathHotspotLimit", "--uphl"},
+            description = "Limit of directory hotspots containing most small files."
+    )
+    int hotspotsLimit = 10;
 
     @Override
     public void run() {
@@ -125,7 +147,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         out.println();
 
         final String formatSpec = FormatUtil.numberOfDigitsFormat(report.sumOverallSmallFiles) + "%n";
-        if(report.sumOverallSmallFiles != report.sumUserSmallFiles) {
+        if (report.sumOverallSmallFiles != report.sumUserSmallFiles) {
             out.printf("Overall small files         : " + formatSpec, report.sumOverallSmallFiles);
             out.printf("User (filtered) small files : " + formatSpec, +report.sumUserSmallFiles);
         } else {
@@ -135,23 +157,66 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
         final List<UserReport> userReports = report.listUserReports();
         if (!userReports.isEmpty()) {
-            int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "#Small files".length());
-            int maxWidthUserName = Math.max(
-                    userReports.stream()
-                            .max(Comparator.comparingLong(o -> o.userName.length()))
-                            .orElseThrow(IllegalStateException::new).userName.length() ,
-                    "Username".length()
-            );
-            out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s%n",
-                    "Username", "#Small files");
-            out.println(FormatUtil.padRight('-', maxWidthUserName + 3 + maxWidthSum));
-            final String format = "%-" + maxWidthUserName + "s | %" + maxWidthSum + "d%n";
-            for (UserReport userReport : userReports) {
-                out.printf(format, userReport.userName, userReport.sumSmallFiles);
-            }
+            printUsersReport(out, userReports);
         } else {
             out.println("No users found in directory paths " + Arrays.toString(mainCommand.dirs));
         }
+    }
+
+    private void printUsersReport(PrintStream out, List<UserReport> userReports) {
+        int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "#Small files".length());
+        int maxWidthUserName = Math.max(
+                userReports.stream()
+                        .max(Comparator.comparingLong(o -> o.userName.length()))
+                        .orElseThrow(IllegalStateException::new).userName.length(),
+                "Username".length()
+        );
+        out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s%n",
+                "Username", "#Small files");
+        out.println(FormatUtil.padRight('-', maxWidthUserName + 3 + maxWidthSum));
+        final String format = "%-" + maxWidthUserName + "s | %" + maxWidthSum + "d%n";
+        for (UserReport userReport : userReports) {
+            out.printf(format, userReport.userName, userReport.sumSmallFiles);
+        }
+
+        out.println();
+
+        // Details
+        final String hotspotLabel = "Small files hotspots (top " + hotspotsLimit + " count/path)";
+        out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %s%n",
+                "Username", hotspotLabel);
+        int separatorLength = maxWidthUserName + 3 + hotspotLabel.length();
+        out.println(FormatUtil.padRight('-', separatorLength));
+        for (int i = 0; i < Math.min(10, userReports.size()); i++) {
+            printUserDetailsReport(out, userReports.get(i), maxWidthUserName, maxWidthSum, separatorLength);
+        }
+    }
+
+    static final Comparator<Map.Entry<String, LongAdder>> USER_REPORT_ENTRY_COMPARATOR = (o1, o2) -> {
+        int c = Long.compare(o1.getValue().longValue(), o2.getValue().longValue());
+        if (0 == c) {
+            return o1.getKey().compareTo(o2.getKey());
+        }
+        return -c;
+    };
+
+    private void printUserDetailsReport(PrintStream out, UserReport userReport, int maxWidthUserName, int maxWidthSum,
+                                        int separatorLength) {
+        userReport.aggregatePaths();
+
+        final List<Map.Entry<String, LongAdder>> topEntries = userReport.pathToCounter.entrySet().stream()
+                .sorted(USER_REPORT_ENTRY_COMPARATOR)
+                .limit(hotspotsLimit)
+                .collect(Collectors.toList());
+        String format = "%" + maxWidthUserName + "." + maxWidthUserName + "s | %" + maxWidthSum + "d | %s%n";
+        if (!topEntries.isEmpty()) {
+            out.printf(format, userReport.userName, topEntries.get(0).getValue().longValue(), topEntries.get(0).getKey());
+            for (int i = 1; i < topEntries.size(); i++) {
+                final Map.Entry<String, LongAdder> entry = topEntries.get(i);
+                out.printf(format, "", entry.getValue().longValue(), entry.getKey());
+            }
+        }
+        out.println(FormatUtil.padRight('-', separatorLength));
     }
 
 
