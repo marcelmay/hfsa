@@ -208,7 +208,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                 .sorted(USER_REPORT_ENTRY_COMPARATOR)
                 .limit(hotspotsLimit)
                 .collect(Collectors.toList());
-        String format = "%" + maxWidthUserName + "." + maxWidthUserName + "s | %" + maxWidthSum + "d | %s%n";
+        String format = "%-" + maxWidthUserName + "." + maxWidthUserName + "s | %" + maxWidthSum + "d | %s%n";
         if (!topEntries.isEmpty()) {
             out.printf(format, userReport.userName, topEntries.get(0).getValue().longValue(), topEntries.get(0).getKey());
             for (int i = 1; i < topEntries.size(); i++) {

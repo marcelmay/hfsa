@@ -68,20 +68,29 @@ By user:             3 | #Directories | #SymLinks | #File      | Size [MB] | #Bl
 ```
 #### Summary sub command
 ```
-Usage: hfsa-tool summary [-s=<sort>]
+Usage: hfsa-tool summary [-hV] [-s=<sort>]
+Generates an HDFS usage summary (default command if no other command specified)
+  -h, --help          Show this help message and exit.
   -s, --sort=<sort>   Sort by <fs> size, <fc> file count, <dc> directory count or
                         <bc> block count (default: fs).
                         Default: fs
+  -V, --version       Print version information and exit.
 ```
 
 #### Small files report sub command
 ```
-Usage: hfsa-tool smallfiles [--fsl=<fileSizeLimitBytes>]
+Usage: hfsa-tool smallfiles [-hV] [--fsl=<fileSizeLimitBytes>]
+                            [--uphl=<hotspotsLimit>]
 Reports on small file usage
       --fsl, -fileSizeLimit=<fileSizeLimitBytes>
                   Small file size limit in bytes (IEC binary formatted, eg 2MiB).
                     Every file less equals the limit counts as a small file.
                     Default: 2097152
+      --uphl, -userPathHotspotLimit=<hotspotsLimit>
+                  Limit of directory hotspots containing most small files.
+                    Default: 10
+  -h, --help      Show this help message and exit.
+  -V, --version   Print version information and exit.
 ```
 
 #### Example
@@ -92,9 +101,20 @@ Report on small files less than 3 megabytes, for all users matching regexp `m.*`
 
 Small files report (< 3 MiB)
 
-Username | Sum small files
---------------------------
-mm       |               3
+Overall small files         : 4
+User (filtered) small files : 3
+
+Username | #Small files
+-----------------------
+mm       |            3
+
+Username | Small files hotspots (top 10 count/path)
+---------------------------------------------------
+mm       |            3 | /
+         |            2 | /test3
+         |            1 | /test3/foo
+         |            1 | /test3/foo/bar
+---------------------------------------------------
 ```
 ### Requirements 
 
