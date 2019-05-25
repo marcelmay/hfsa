@@ -553,6 +553,13 @@ public class FSImageLoader {
         }
     }
 
+    /**
+     * Gets the permission status for a file or directory or symlink path.
+     *
+     * @param path the path for a file or directory or symlink.
+     * @return the permission status.
+     * @throws IOException on error.
+     */
     public PermissionStatus getPermissionStatus(String path) throws IOException {
         FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
         switch (inode.getType()) {
@@ -578,7 +585,7 @@ public class FSImageLoader {
     }
 
     /**
-     * Returns the INodeId of the specified path, or if not found throws FileNotFoundException.
+     * Returns the INode Id of the specified path, or if not found throws FileNotFoundException.
      *
      * @param path the path.
      * @return the inode id.
@@ -587,10 +594,22 @@ public class FSImageLoader {
         return getINodeFromPath(path).getId();
     }
 
+    /**
+     * Loads the permission status
+     *
+     * @param permission the permission.
+     * @return the  permission status.
+     */
     public PermissionStatus getPermissionStatus(long permission) {
         return FSImageFormatPBINode.Loader.loadPermission(permission, stringTable);
     }
 
+    /**
+     * Computes the file size.
+     *
+     * @param file the file.
+     * @return the size in bytes.
+     */
     public static long getFileSize(FsImageProto.INodeSection.INodeFile file) {
         long size = 0;
         for (HdfsProtos.BlockProto p : file.getBlocksList()) {
