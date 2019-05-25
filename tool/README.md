@@ -104,6 +104,13 @@ Small files report (< 3 MiB)
 Overall small files         : 4
 User (filtered) small files : 3
 
+#Small files  | Path (top 10) 
+------------------------------
+            4 | /
+            3 | /test3
+            2 | /test3/foo
+            1 | /test3/foo/bar
+
 Username | #Small files
 -----------------------
 mm       |            3

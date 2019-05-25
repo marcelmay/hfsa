@@ -26,6 +26,12 @@ public class SmallFilesReportCommandTest {
                         "\n" +
                         "Overall small files : 3\n" +
                         "\n" +
+                        "#Small files  | Path (top 10) \n" +
+                        "------------------------------\n" +
+                        "            3 | /\n" +
+                        "            2 | /test3\n" +
+                        "            1 | /test3/foo\n" +
+                        "\n" +
                         "Username | #Small files\n" +
                         "-----------------------\n" +
                         "mm       |            2\n" +
@@ -62,6 +68,12 @@ public class SmallFilesReportCommandTest {
                         "\n" +
                         "Overall small files         : 3\n" +
                         "User (filtered) small files : 2\n" +
+                        "\n" +
+                        "#Small files  | Path (top 10) \n" +
+                        "------------------------------\n" +
+                        "            3 | /\n" +
+                        "            2 | /test3\n" +
+                        "            1 | /test3/foo\n" +
                         "\n" +
                         "Username | #Small files\n" +
                         "-----------------------\n" +

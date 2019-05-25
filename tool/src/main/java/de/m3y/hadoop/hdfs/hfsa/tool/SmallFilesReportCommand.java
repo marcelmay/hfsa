@@ -46,24 +46,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
             sumSmallFiles = pathToCounter.values().stream().mapToLong(LongAdder::longValue).sum();
         }
 
-        public void aggregatePaths() {
-            final ArrayList<Map.Entry<String, LongAdder>> entries = new ArrayList<>(pathToCounter.entrySet());
-            final Map<String, LongAdder> aggregates = new HashMap<>();
-            for (Map.Entry<String, LongAdder> entry : entries) {
-                String path = entry.getKey();
-                if (FSImageLoader.ROOT_PATH.equals(path)) {
-                    continue;
-                }
-                long smallFilesCount = entry.getValue().longValue();
-                for (int idx = path.lastIndexOf('/'); idx >= 0; idx = path.lastIndexOf('/', idx - 1)) {
-                    String parentPath = (0 == idx ? FSImageLoader.ROOT_PATH : path.substring(0, idx));
-                    aggregates.computeIfAbsent(parentPath, v -> new LongAdder()).add(smallFilesCount);
-                }
-            }
-            for (Map.Entry<String, LongAdder> entry : aggregates.entrySet()) {
-                pathToCounter.computeIfAbsent(entry.getKey(), v -> new LongAdder()).add(entry.getValue().longValue());
-            }
-        }
+
     }
 
     static class Report {
@@ -146,6 +129,17 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         out.println("Small files report (< " + IECBinary.format(fileSizeLimitBytes) + ")");
         out.println();
 
+        printOverallReport(report, out);
+
+        final List<UserReport> userReports = report.listUserReports();
+        if (!userReports.isEmpty()) {
+            printUsersReport(out, userReports);
+        } else {
+            out.println("No users found in directory paths " + Arrays.toString(mainCommand.dirs));
+        }
+    }
+
+    private void printOverallReport(Report report, PrintStream out) {
         final String formatSpec = FormatUtil.numberOfDigitsFormat(report.sumOverallSmallFiles) + "%n";
         if (report.sumOverallSmallFiles != report.sumUserSmallFiles) {
             out.printf("Overall small files         : " + formatSpec, report.sumOverallSmallFiles);
@@ -155,12 +149,27 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         }
         out.println();
 
-        final List<UserReport> userReports = report.listUserReports();
-        if (!userReports.isEmpty()) {
-            printUsersReport(out, userReports);
-        } else {
-            out.println("No users found in directory paths " + Arrays.toString(mainCommand.dirs));
+        aggregatePaths(report.pathToCounter);
+        final Comparator<Map.Entry<String, LongAdder>> comparator =
+                Comparator.comparingLong(o -> o.getValue().longValue());
+        final List<Map.Entry<String, LongAdder>> topEntries = report.pathToCounter.entrySet().stream()
+                .sorted(comparator.reversed())
+                .limit(hotspotsLimit)
+                .collect(Collectors.toList());
+        String labelCount = "#Small files ";
+        int maxWidthSum = Math.max(FormatUtil.numberOfDigits(report.sumOverallSmallFiles), labelCount.length());
+        String header = labelCount + " | Path (top " + this.hotspotsLimit + ") ";
+        out.println(header);
+        out.println(FormatUtil.padRight('-', header.length()));
+        String format = "%" + maxWidthSum + "d | %s%n";
+        if (!topEntries.isEmpty()) {
+            out.printf(format, topEntries.get(0).getValue().longValue(), topEntries.get(0).getKey());
+            for (int i = 1; i < topEntries.size(); i++) {
+                final Map.Entry<String, LongAdder> entry = topEntries.get(i);
+                out.printf(format, entry.getValue().longValue(), entry.getKey());
+            }
         }
+        out.println();
     }
 
     private void printUsersReport(PrintStream out, List<UserReport> userReports) {
@@ -202,7 +211,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
     private void printUserDetailsReport(PrintStream out, UserReport userReport, int maxWidthUserName, int maxWidthSum,
                                         int separatorLength) {
-        userReport.aggregatePaths();
+        aggregatePaths(userReport.pathToCounter);
 
         final List<Map.Entry<String, LongAdder>> topEntries = userReport.pathToCounter.entrySet().stream()
                 .sorted(USER_REPORT_ENTRY_COMPARATOR)
@@ -257,6 +266,25 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         report.computeStats();
 
         return report;
+    }
+
+    private void aggregatePaths(Map<String, LongAdder> pathToCounter) {
+        final ArrayList<Map.Entry<String, LongAdder>> entries = new ArrayList<>(pathToCounter.entrySet());
+        final Map<String, LongAdder> aggregates = new HashMap<>();
+        for (Map.Entry<String, LongAdder> entry : entries) {
+            String path = entry.getKey();
+            if (FSImageLoader.ROOT_PATH.equals(path)) {
+                continue;
+            }
+            long smallFilesCount = entry.getValue().longValue();
+            for (int idx = path.lastIndexOf('/'); idx >= 0; idx = path.lastIndexOf('/', idx - 1)) {
+                String parentPath = (0 == idx ? FSImageLoader.ROOT_PATH : path.substring(0, idx));
+                aggregates.computeIfAbsent(parentPath, v -> new LongAdder()).add(smallFilesCount);
+            }
+        }
+        for (Map.Entry<String, LongAdder> entry : aggregates.entrySet()) {
+            pathToCounter.computeIfAbsent(entry.getKey(), v -> new LongAdder()).add(entry.getValue().longValue());
+        }
     }
 
     private Predicate<String> createUserNameFilter(String userNameFilter) {
