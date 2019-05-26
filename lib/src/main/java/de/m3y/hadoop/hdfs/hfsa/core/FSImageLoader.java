@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableLongArray;
 import com.google.protobuf.CodedInputStream;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
@@ -153,7 +154,7 @@ public class FSImageLoader {
                     (int) Math.min(section.getLength(), 512L * 1024L /* 512KiB */),
                     8 * 1024 /* 8KiB */);
             InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
-                    new BufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
+                    new FastBufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
 
             final T apply = f.apply(is);
             LOG.info("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
