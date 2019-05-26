@@ -45,8 +45,6 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         void computeStats() {
             sumSmallFiles = pathToCounter.values().stream().mapToLong(LongAdder::longValue).sum();
         }
-
-
     }
 
     static class Report {
@@ -170,6 +168,9 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
             }
         }
         out.println();
+
+        // Free memory after reporting
+        report.pathToCounter.clear();
     }
 
     private void printUsersReport(PrintStream out, List<UserReport> userReports) {
@@ -190,20 +191,26 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
         out.println();
 
-        // Details
+        // Details including top directory small files hotspots.
+        // Free memory of user reports not in hotspot list.
+        userReports.subList(Math.min(hotspotsLimit, userReports.size()), userReports.size()).clear();
+
         final String hotspotLabel = "Small files hotspots (top " + hotspotsLimit + " count/path)";
         out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %s%n",
                 "Username", hotspotLabel);
         int separatorLength = maxWidthUserName + 3 + hotspotLabel.length();
         out.println(FormatUtil.padRight('-', separatorLength));
         for (int i = 0; i < Math.min(10, userReports.size()); i++) {
-            printUserDetailsReport(out, userReports.get(i), maxWidthUserName, maxWidthSum, separatorLength);
+            final UserReport userReport = userReports.get(i);
+            printUserDetailsReport(out, userReport, maxWidthUserName, maxWidthSum, separatorLength);
+            // Free memory after reporting
+            userReport.pathToCounter.clear();
         }
     }
 
     static final Comparator<Map.Entry<String, LongAdder>> USER_REPORT_ENTRY_COMPARATOR = (o1, o2) -> {
         int c = Long.compare(o1.getValue().longValue(), o2.getValue().longValue());
-        if (0 == c) {
+        if (0 == c) { // If same size, compare paths as secondary sort criteria
             return o1.getKey().compareTo(o2.getKey());
         }
         return -c;
