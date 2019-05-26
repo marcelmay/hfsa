@@ -67,15 +67,9 @@ public class FSImageLoader {
     // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
     private final long[] inodesIdxToIdCache;
     private final Long2ObjectLinkedOpenHashMap<long[]> dirmap;
-    private static final Comparator<byte[]> INODE_BYTES_COMPARATOR = (o1, o2) -> {
-        try {
-            return Long.compare(extractNodeId(o1), extractNodeId(o2));
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-    };
+    private static final Comparator<byte[]> INODE_BYTES_COMPARATOR = Comparator.comparingLong(FSImageLoader::extractNodeId);
 
-    private static long extractNodeId(byte[] buf) throws IOException {
+    private static long extractNodeId(byte[] buf) {
         // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
         // In a micro benchmark, it is several times(!) faster than
         // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
@@ -116,16 +110,12 @@ public class FSImageLoader {
         long start = System.currentTimeMillis();
         long[] cache = new long[inodes.length];
         // Compute inode idx to inode id cache
-        int i = 0;
-        try {
-            while (i < cache.length) {
-                cache[i] = extractNodeId(inodes[i]);
-                i++;
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Can not parse inode " + i);
+        for (int i = 0; i < cache.length; i++) {
+            cache[i] = extractNodeId(inodes[i]);
         }
-        LOG.debug("Computed inodes idx to id cache in " + (System.currentTimeMillis() - start) + "ms");
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
+        }
         return cache;
     }
 
@@ -160,7 +150,7 @@ public class FSImageLoader {
 
             // Min 8 KiB, max 512 KiB buffer
             final int bufferSize = Math.max(
-                    (int) Math.min(section.getLength(), 512 * 1024 /* 512KiB */),
+                    (int) Math.min(section.getLength(), 512L * 1024L /* 512KiB */),
                     8 * 1024 /* 8KiB */);
             InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
                     new BufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
