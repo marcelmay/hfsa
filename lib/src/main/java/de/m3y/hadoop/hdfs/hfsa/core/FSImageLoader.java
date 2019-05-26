@@ -24,9 +24,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableLongArray;
 import com.google.protobuf.CodedInputStream;
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -66,7 +66,7 @@ public class FSImageLoader {
     private final byte[][] inodes;
     // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
     private final long[] inodesIdxToIdCache;
-    private final Map<Long, long[]> dirmap;
+    private final Long2ObjectLinkedOpenHashMap<long[]> dirmap;
     private static final Comparator<byte[]> INODE_BYTES_COMPARATOR = (o1, o2) -> {
         try {
             return Long.compare(extractNodeId(o1), extractNodeId(o2));
@@ -93,7 +93,7 @@ public class FSImageLoader {
     }
 
     private FSImageLoader(StringTable stringTable, byte[][] inodes,
-                          Map<Long, long[]> dirmap) {
+                          Long2ObjectLinkedOpenHashMap<long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
         this.inodesIdxToIdCache = new long[inodes.length];
@@ -175,16 +175,16 @@ public class FSImageLoader {
             byte[][] inodes = loadSection(fin, codec, sectionInode, FSImageLoader::loadINodeSection); // SLOW!!!
 
             FileSummary.Section sectionInodeDir = findSectionByName(sectionsList, SectionName.INODE_DIR);
-            Map<Long, long[]> dirmap = loadSection(fin, codec, sectionInodeDir,
+            Long2ObjectLinkedOpenHashMap<long[]> dirmap = loadSection(fin, codec, sectionInodeDir,
                     (InputStream is) -> FSImageLoader.loadINodeDirectorySection(is, refIdList)); // SLOW!!!
 
             return new FSImageLoader(stringTable, inodes, dirmap);
         }
     }
 
-    private static Map<Long, long[]> loadINodeDirectorySection(InputStream in, ImmutableLongArray refIdList)
+    private static Long2ObjectLinkedOpenHashMap<long[]> loadINodeDirectorySection(InputStream in, ImmutableLongArray refIdList)
             throws IOException {
-        Map<Long, long[]> dirs = Maps.newHashMapWithExpectedSize(512 * 1014 /* 512K */);
+        Long2ObjectLinkedOpenHashMap<long[]> dirs = new Long2ObjectLinkedOpenHashMap(512 * 1024 /* 512K */);
         while (true) {
             FsImageProto.INodeDirectorySection.DirEntry e =
                     FsImageProto.INodeDirectorySection.DirEntry.parseDelimitedFrom(in);
@@ -658,7 +658,7 @@ public class FSImageLoader {
                 return FsImageProto.INodeSection.INode.parseFrom(inodeBytes);
             }
         }
-        throw new IllegalStateException("Can not find inode by id "+id);
+        throw new IllegalStateException("Can not find inode by id " + id);
     }
 
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {

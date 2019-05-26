@@ -125,6 +125,12 @@
                 <artifactId>picocli</artifactId>
                 <version>3.9.6</version>
             </dependency>
+            <dependency>
+                <groupId>it.unimi.dsi</groupId>
+                <artifactId>fastutil</artifactId>
+                <version>8.2.2</version>
+            </dependency>
+
             <!-- Testing -->
             <dependency>
                 <groupId>junit</groupId>
