@@ -96,15 +96,25 @@ public class FSImageLoader {
                           Long2ObjectLinkedOpenHashMap<long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
-        this.inodesIdxToIdCache = new long[inodes.length];
-        for (int i = 0; i < inodesIdxToIdCache.length; i++) {
-            try {
-                inodesIdxToIdCache[i] = extractNodeId(inodes[i]);
-            } catch (IOException e) {
-                throw new IllegalStateException("Can not parse inode " + i);
-            }
-        }
         this.dirmap = dirmap;
+        this.inodesIdxToIdCache = computeInodesIdxToIdCache();
+    }
+
+    private long[] computeInodesIdxToIdCache() {
+        long start = System.currentTimeMillis();
+        long[] cache = new long[inodes.length];
+        // Compute inode idx to inode id cache
+        int i = 0;
+        try {
+            while (i < cache.length) {
+                cache[i] = extractNodeId(inodes[i]);
+                i++;
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Can not parse inode " + i);
+        }
+        LOG.debug("Computed inodes idx to id cache in " + (System.currentTimeMillis() - start) + "ms");
+        return cache;
     }
 
     private static FileSummary.Section findSectionByName(
@@ -136,8 +146,12 @@ public class FSImageLoader {
             FileChannel fc = fin.getChannel();
             fc.position(section.getOffset());
 
+            // Min 8 KiB, max 512 KiB buffer
+            final int bufferSize = Math.max(
+                    (int) Math.min(section.getLength(), 512 * 1024 /* 512KiB */),
+                    8 * 1024 /* 8KiB */);
             InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
-                    new BufferedInputStream(new LimitInputStream(fin, section.getLength()), 8 * 8192 /* 64KiB */));
+                    new BufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
 
             final T apply = f.apply(is);
             LOG.info("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
@@ -184,7 +198,7 @@ public class FSImageLoader {
 
     private static Long2ObjectLinkedOpenHashMap<long[]> loadINodeDirectorySection(InputStream in, ImmutableLongArray refIdList)
             throws IOException {
-        Long2ObjectLinkedOpenHashMap<long[]> dirs = new Long2ObjectLinkedOpenHashMap(512 * 1024 /* 512K */);
+        Long2ObjectLinkedOpenHashMap<long[]> dirs = new Long2ObjectLinkedOpenHashMap<>(512 * 1024 /* 512K */);
         while (true) {
             FsImageProto.INodeDirectorySection.DirEntry e =
                     FsImageProto.INodeDirectorySection.DirEntry.parseDelimitedFrom(in);
