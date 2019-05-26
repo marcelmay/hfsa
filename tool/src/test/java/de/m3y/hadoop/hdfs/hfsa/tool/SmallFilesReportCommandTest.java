@@ -32,10 +32,10 @@ public class SmallFilesReportCommandTest {
                         "            2 | /test3\n" +
                         "            1 | /test3/foo\n" +
                         "\n" +
-                        "Username | #Small files\n" +
-                        "-----------------------\n" +
-                        "mm       |            2\n" +
-                        "root     |            1\n" +
+                        "Username | #Small files | %\n" +
+                        "------------------------------------\n" +
+                        "mm       |            2 | 66.7%\n" +
+                        "root     |            1 | 33.3%\n" +
                         "\n" +
                         "Username | Small files hotspots (top 10 count/path)\n" +
                         "---------------------------------------------------\n" +
@@ -75,9 +75,9 @@ public class SmallFilesReportCommandTest {
                         "            2 | /test3\n" +
                         "            1 | /test3/foo\n" +
                         "\n" +
-                        "Username | #Small files\n" +
-                        "-----------------------\n" +
-                        "mm       |            2\n" +
+                        "Username | #Small files | %\n" +
+                        "------------------------------------\n" +
+                        "mm       |            2 | 66.7%\n" +
                         "\n" +
                         "Username | Small files hotspots (top 10 count/path)\n" +
                         "---------------------------------------------------\n" +

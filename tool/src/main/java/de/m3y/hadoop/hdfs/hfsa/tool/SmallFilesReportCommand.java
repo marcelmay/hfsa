@@ -131,7 +131,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
         final List<UserReport> userReports = report.listUserReports();
         if (!userReports.isEmpty()) {
-            printUsersReport(out, userReports);
+            printUsersReport(out, userReports, report.sumOverallSmallFiles);
         } else {
             out.println("No users found in directory paths " + Arrays.toString(mainCommand.dirs));
         }
@@ -173,7 +173,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         report.pathToCounter.clear();
     }
 
-    private void printUsersReport(PrintStream out, List<UserReport> userReports) {
+    private void printUsersReport(PrintStream out, List<UserReport> userReports, long sumOverallSmallFiles) {
         int maxWidthSum = Math.max(FormatUtil.numberOfDigits(userReports.get(0).sumSmallFiles), "#Small files".length());
         int maxWidthUserName = Math.max(
                 userReports.stream()
@@ -181,12 +181,13 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                         .orElseThrow(IllegalStateException::new).userName.length(),
                 "Username".length()
         );
-        out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s%n",
-                "Username", "#Small files");
-        out.println(FormatUtil.padRight('-', maxWidthUserName + 3 + maxWidthSum));
-        final String format = "%-" + maxWidthUserName + "s | %" + maxWidthSum + "d%n";
+        out.printf("%-" + maxWidthUserName + "." + maxWidthUserName + "s | %-" + maxWidthSum + "." + maxWidthSum + "s | %s%n",
+                "Username", "#Small files","%");
+        out.println(FormatUtil.padRight('-', maxWidthUserName + 3 + maxWidthSum + 3 + 10));
+        final String format = "%-" + maxWidthUserName + "s | %" + maxWidthSum + "d | %3.1f%%%n";
         for (UserReport userReport : userReports) {
-            out.printf(format, userReport.userName, userReport.sumSmallFiles);
+            final float percentage = (float)userReport.sumSmallFiles / sumOverallSmallFiles * 100f;
+            out.printf(format, userReport.userName, userReport.sumSmallFiles, percentage);
         }
 
         out.println();
