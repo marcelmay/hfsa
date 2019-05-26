@@ -77,19 +77,31 @@ public class FSImageLoader {
 
     private static long extractNodeId(byte[] buf) throws IOException {
         // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
-        // In a micro benchmark, it is several times(!) faster
+        // In a micro benchmark, it is several times(!) faster than
         // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
-        CodedInputStream input = CodedInputStream.newInstance(buf, 0, buf.length);
-        int tag = input.readTag();
-        if (tag != 8) {
-            throw new IllegalStateException("Can not parse type enum from INode, got tag " + tag + " but expected " + 8);
+        // - obiously, there are less instances created and less unmarshalling involed.
+
+        // INode wire format:
+        // tag 8
+        // enum
+        // tag 16
+        // id (long)
+
+        // Even more optimized, no direct object creation such as CodedInputStream:
+        // Extracted from CodedInputStream.readRawVarint64()
+        int bufferPos = 3; /* tag + enum + tag */
+        int shift = 0;
+        long result = 0;
+        while (shift < 64) {
+            final byte b = buf[bufferPos++];
+            result |= (long) (b & 0x7F) << shift;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+            shift += 7;
         }
-        input.readEnum(); // Ignore
-        tag = input.readTag();
-        if (tag != 16) {
-            throw new IllegalStateException("Can not parse type enum from INode, got tag " + tag + " but expected " + 16);
-        }
-        return input.readUInt64();
+        throw new IllegalArgumentException("malformedVarint at pos 3 : ["
+                + buf[3] + "," + buf[4] + "," + buf[5] + "," + buf[6] + "]");
     }
 
     private FSImageLoader(StringTable stringTable, byte[][] inodes,
@@ -562,7 +574,7 @@ public class FSImageLoader {
                         d.getAcl(), stringTable);
             }
             default: {
-                return new ArrayList<>();
+                return Collections.emptyList();
             }
         }
     }

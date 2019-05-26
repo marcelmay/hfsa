@@ -394,4 +394,13 @@ public class FSImageLoaderTest {
         }
     }
 
+    @Test
+    public void testNormalizePath() {
+        assertThat(FSImageLoader.normalizePath("/")).isEqualTo("/");
+        assertThat(FSImageLoader.normalizePath("//")).isEqualTo("/");
+        assertThat(FSImageLoader.normalizePath("//test/foo")).isEqualTo("/test/foo");
+        assertThat(FSImageLoader.normalizePath("/test/foo")).isEqualTo("/test/foo");
+        assertThat(FSImageLoader.normalizePath("/test//foo")).isEqualTo("/test/foo");
+        assertThat(FSImageLoader.normalizePath("/test//foo///bar///")).isEqualTo("/test/foo/bar/");
+    }
 }
