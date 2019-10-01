@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableLongArray;
 import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.InvalidProtocolBufferException;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import org.apache.hadoop.fs.permission.AclEntry;
@@ -64,61 +65,143 @@ public class FSImageLoader {
 
     private final StringTable stringTable;
     // byte representation of inodes, sorted by id
-    private final byte[][] inodes;
-    // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
-    private final long[] inodesIdxToIdCache;
+    private final INodesRepository inodes;
     private final Long2ObjectLinkedOpenHashMap<long[]> dirmap;
-    private static final Comparator<byte[]> INODE_BYTES_COMPARATOR = Comparator.comparingLong(FSImageLoader::extractNodeId);
 
-    private static long extractNodeId(byte[] buf) {
-        // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
-        // In a micro benchmark, it is several times(!) faster than
-        // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
-        // - obiously, there are less instances created and less unmarshalling involed.
+    /**
+     * Manages inodes.
+     */
+    interface INodesRepository {
+        /**
+         * Gets an inode by its identifier.
+         *
+         * @param inodeId the inode identifier.
+         * @return the inode
+         * @throws InvalidProtocolBufferException if protobuf deserialization fails
+         */
+        FsImageProto.INodeSection.INode getInode(long inodeId) throws InvalidProtocolBufferException;
 
-        // INode wire format:
-        // tag 8
-        // enum
-        // tag 16
-        // id (long)
-
-        // Even more optimized, no direct object creation such as CodedInputStream:
-        // Extracted from CodedInputStream.readRawVarint64()
-        int bufferPos = 3; /* tag + enum + tag */
-        int shift = 0;
-        long result = 0;
-        while (shift < 64) {
-            final byte b = buf[bufferPos++];
-            result |= (long) (b & 0x7F) << shift;
-            if ((b & 0x80) == 0) {
-                return result;
-            }
-            shift += 7;
-        }
-        throw new IllegalArgumentException("malformedVarint at pos 3 : ["
-                + buf[3] + "," + buf[4] + "," + buf[5] + "," + buf[6] + "]");
+        /**
+         * Gets the number of inodes in this repository.
+         *
+         * @return the number of inodes.
+         */
+        int getSize();
     }
 
-    private FSImageLoader(StringTable stringTable, byte[][] inodes,
+    /**
+     * Implementation of INode repository using array of bytes.
+     */
+    static class PrimitiveArrayINodesRepository implements INodesRepository {
+        private static final Comparator<byte[]> INODE_BYTES_COMPARATOR =
+                Comparator.comparingLong(PrimitiveArrayINodesRepository::extractNodeId);
+
+        private final byte[][] inodes;
+        // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
+        private final long[] inodesIdxToIdCache;
+
+        PrimitiveArrayINodesRepository(byte[][] buf, long[] inodeOffsets) {
+            inodes = buf;
+            this.inodesIdxToIdCache = inodeOffsets;
+        }
+
+        static PrimitiveArrayINodesRepository create(FsImageProto.INodeSection s, InputStream in, long length) throws IOException {
+            long start = System.currentTimeMillis();
+            final byte[][] inodes = new byte[(int) s.getNumInodes()][];
+            for (int i = 0; i < s.getNumInodes(); ++i) {
+                int size = CodedInputStream.readRawVarint32(in.read(), in);
+                byte[] bytes = new byte[size];
+                IOUtils.readFully(in, bytes, 0, size);
+                inodes[i] = bytes;
+            }
+            LOG.info("Loaded {} inodes [{}ms] of length {} bytes",
+                    s.getNumInodes(), System.currentTimeMillis() - start, length);
+            start = System.currentTimeMillis();
+            Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
+            LOG.info("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
+            return new PrimitiveArrayINodesRepository(inodes, computeInodesIdxToIdCache(inodes));
+        }
+
+        private static long[] computeInodesIdxToIdCache(byte[][] buf) {
+            long start = System.currentTimeMillis();
+            long[] cache = new long[buf.length];
+            // Compute inode idx to inode id cache
+            for (int i = 0; i < cache.length; i++) {
+                cache[i] = extractNodeId(buf[i]);
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
+            }
+            return cache;
+        }
+
+        private byte[] getInodeAsBytes(final long inodeId) {
+            // Binary search over sorted node id array
+            int l = 0;
+            int r = inodes.length - 1;
+            while (l <= r) {
+                int mid = (l + r) >>> 1;
+                long currentInodeId = inodesIdxToIdCache[mid];
+
+                if (currentInodeId < inodeId) {
+                    l = mid + 1;
+                } else if (currentInodeId > inodeId) {
+                    r = mid - 1;
+                } else {
+                    return inodes[mid];
+                }
+            }
+            throw new IllegalArgumentException("Can not find inode by id " + inodeId);
+        }
+
+        @Override
+        public FsImageProto.INodeSection.INode getInode(long inodeId) throws InvalidProtocolBufferException {
+            return FsImageProto.INodeSection.INode.parseFrom(getInodeAsBytes(inodeId));
+        }
+
+        @Override
+        public int getSize() {
+            return inodes.length;
+        }
+
+        private static long extractNodeId(byte[] buf) {
+            // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
+            // In a micro benchmark, it is several times(!) faster than
+            // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
+            // - obiously, there are less instances created and less unmarshalling involed.
+
+            // INode wire format:
+            // tag 8
+            // enum
+            // tag 16
+            // id (long)
+
+            // Even more optimized, no direct object creation such as CodedInputStream:
+            // Extracted from CodedInputStream.readRawVarint64()
+            int bufferPos = 3; /* tag + enum + tag */
+            int shift = 0;
+            long result = 0;
+            while (shift < 64) {
+                final byte b = buf[bufferPos++];
+                result |= (long) (b & 0x7F) << shift;
+                if ((b & 0x80) == 0) {
+                    return result;
+                }
+                shift += 7;
+            }
+            throw new IllegalArgumentException("Malformed Varint at pos 3 : ["
+                    + buf[3] + "," + buf[4] + "," + buf[5] + "," + buf[6] + "]");
+        }
+    }
+
+
+    private FSImageLoader(StringTable stringTable, INodesRepository inodes,
                           Long2ObjectLinkedOpenHashMap<long[]> dirmap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
         this.dirmap = dirmap;
-        this.inodesIdxToIdCache = computeInodesIdxToIdCache();
     }
 
-    private long[] computeInodesIdxToIdCache() {
-        long start = System.currentTimeMillis();
-        long[] cache = new long[inodes.length];
-        // Compute inode idx to inode id cache
-        for (int i = 0; i < cache.length; i++) {
-            cache[i] = extractNodeId(inodes[i]);
-        }
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
-        }
-        return cache;
-    }
 
     private static FileSummary.Section findSectionByName(
             List<FileSummary.Section> sectionList, SectionName sectionName) {
@@ -134,7 +217,7 @@ public class FSImageLoader {
 
     @FunctionalInterface
     interface IOFunction<R> {
-        R apply(InputStream t) throws IOException;
+        R apply(InputStream t, long length) throws IOException;
     }
 
     private static <T> T loadSection(FileInputStream fin,
@@ -151,12 +234,12 @@ public class FSImageLoader {
 
             // Min 8 KiB, max 512 KiB buffer
             final int bufferSize = Math.max(
-                    (int) Math.min(section.getLength(), 512L * 1024L /* 512KiB */),
+                    (int) Math.min(section.getLength(), 1024L * 1024L /* 1024KiB */),
                     8 * 1024 /* 8KiB */);
             InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
                     new FastBufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
 
-            final T apply = f.apply(is);
+            final T apply = f.apply(is, section.getLength());
             LOG.info("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
             return apply;
         } catch (IOException ex) {
@@ -189,11 +272,11 @@ public class FSImageLoader {
             ImmutableLongArray refIdList = loadSection(fin, codec, sectionInodeRef, FSImageLoader::loadINodeReferenceSection);
 
             FileSummary.Section sectionInode = findSectionByName(sectionsList, SectionName.INODE);
-            byte[][] inodes = loadSection(fin, codec, sectionInode, FSImageLoader::loadINodeSection); // SLOW!!!
+            INodesRepository inodes = loadSection(fin, codec, sectionInode, FSImageLoader::loadINodeSection); // SLOW!!!
 
             FileSummary.Section sectionInodeDir = findSectionByName(sectionsList, SectionName.INODE_DIR);
             Long2ObjectLinkedOpenHashMap<long[]> dirmap = loadSection(fin, codec, sectionInodeDir,
-                    (InputStream is) -> FSImageLoader.loadINodeDirectorySection(is, refIdList)); // SLOW!!!
+                    (InputStream is, long length) -> FSImageLoader.loadINodeDirectorySection(is, refIdList)); // SLOW!!!
 
             return new FSImageLoader(stringTable, inodes, dirmap);
         }
@@ -225,7 +308,7 @@ public class FSImageLoader {
         return dirs;
     }
 
-    private static ImmutableLongArray loadINodeReferenceSection(InputStream in) throws IOException {
+    private static ImmutableLongArray loadINodeReferenceSection(InputStream in, long length) throws IOException {
         ImmutableLongArray.Builder builder = ImmutableLongArray.builder();
         while (true) {
             FsImageProto.INodeReferenceSection.INodeReference e =
@@ -237,31 +320,18 @@ public class FSImageLoader {
             builder.add(e.getReferredId());
         }
         final ImmutableLongArray array = builder.build();
-        LOG.info("Loaded {} inode references ", array.length());
+        LOG.info("Loaded {} inode references of length {} bytes", array.length(), length);
         return array;
     }
 
     // Slow
-    private static byte[][] loadINodeSection(InputStream in) throws IOException {
-        long start = System.currentTimeMillis();
+    private static INodesRepository loadINodeSection(InputStream in, long length) throws IOException {
         FsImageProto.INodeSection s = FsImageProto.INodeSection
                 .parseDelimitedFrom(in);
-        final byte[][] inodes = new byte[(int) s.getNumInodes()][];
-        for (int i = 0; i < s.getNumInodes(); ++i) {
-            int size = CodedInputStream.readRawVarint32(in.read(), in);
-            byte[] bytes = new byte[size];
-            IOUtils.readFully(in, bytes, 0, size);
-            inodes[i] = bytes;
-        }
-        LOG.info("Loaded {} inodes [{}ms]", s.getNumInodes(), System.currentTimeMillis() - start);
-        start = System.currentTimeMillis();
-        Arrays.parallelSort(inodes, INODE_BYTES_COMPARATOR);
-        LOG.info("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
-        return inodes;
-
+        return PrimitiveArrayINodesRepository.create(s, in, length);
     }
 
-    static StringTable loadStringTable(InputStream in) throws IOException {
+    static StringTable loadStringTable(InputStream in, long length) throws IOException {
         FsImageProto.StringTableSection s = FsImageProto.StringTableSection.parseDelimitedFrom(in);
         StringTable stringTable =
                 newStringTable(s.getNumEntry(), s.getMaskBits());
@@ -270,7 +340,7 @@ public class FSImageLoader {
                     .StringTableSection.Entry.parseDelimitedFrom(in);
             stringTable.put(e.getId(), e.getStr());
         }
-        LOG.info("Loaded {} strings into string table", s.getNumEntry());
+        LOG.info("Loaded {} strings into string table of length {} bytes", s.getNumEntry(), length);
         return stringTable;
     }
 
@@ -339,7 +409,7 @@ public class FSImageLoader {
         if (null != children) {
             List<FsImageProto.INodeSection.INode> dirs = new ArrayList<>();
             for (long cid : children) {
-                final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
+                final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
                 if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                     dirs.add(inode);
                 } else {
@@ -357,7 +427,7 @@ public class FSImageLoader {
     }
 
     void visit(FsVisitor visitor, long nodeId, String path) throws IOException {
-        final FsImageProto.INodeSection.INode inode = fromINodeId(nodeId);
+        final FsImageProto.INodeSection.INode inode = inodes.getInode(nodeId);
         visit(visitor, inode, path);
     }
 
@@ -403,7 +473,7 @@ public class FSImageLoader {
 
         List<FsImageProto.INodeSection.INode> files = new ArrayList<>(children.length);
         for (long cid : children) {
-            final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
+            final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
             if (inode.getType() == FsImageProto.INodeSection.INode.Type.FILE) {
                 files.add(inode);
             }
@@ -425,7 +495,7 @@ public class FSImageLoader {
         long id = INodeId.ROOT_INODE_ID;
         // Root node?
         if (ROOT_PATH.equals(normalizedPath)) {
-            return fromINodeId(id);
+            return inodes.getInode(id);
         }
 
         // Search path
@@ -452,7 +522,7 @@ public class FSImageLoader {
 
             boolean found = false;
             for (long cid : children) {
-                node = fromINodeId(cid);
+                node = inodes.getInode(cid);
                 if (component.equals(node.getName().toStringUtf8())) {
                     found = true;
                     id = node.getId();
@@ -500,7 +570,7 @@ public class FSImageLoader {
         List<String> childPaths = new ArrayList<>();
         final String pathWithTrailingSlash = ROOT_PATH.equals(path) ? path : path + '/';
         for (long cid : children) {
-            final FsImageProto.INodeSection.INode inode = fromINodeId(cid);
+            final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
             if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                 childPaths.add(pathWithTrailingSlash + inode.getName().toStringUtf8());
             }
@@ -660,24 +730,6 @@ public class FSImageLoader {
         return BLOCK_STORAGE_POLICY_SUITE.getDefaultPolicy();
     }
 
-    private FsImageProto.INodeSection.INode fromINodeId(final long id) throws IOException {
-        int l = 0;
-        int r = inodes.length;
-        while (l < r) {
-            int mid = l + (r - l) / 2;
-            long nid = inodesIdxToIdCache[mid];
-            if (id > nid) {
-                l = mid + 1;
-            } else if (id < nid) {
-                r = mid;
-            } else {
-                final byte[] inodeBytes = inodes[mid];
-                return FsImageProto.INodeSection.INode.parseFrom(inodeBytes);
-            }
-        }
-        throw new IllegalStateException("Can not find inode by id " + id);
-    }
-
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {
         final long inodeId = inode.getId();
         final long[] children = dirmap.get(inodeId);
@@ -689,5 +741,4 @@ public class FSImageLoader {
     static String normalizePath(String path) {
         return DOUBLE_SLASH.matcher(path).replaceAll("/");
     }
-
 }
