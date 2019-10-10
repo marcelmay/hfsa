@@ -77,22 +77,22 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs-client</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.1</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>27.1-jre</version>
+                <version>28.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>commons-collections</groupId>
@@ -127,7 +127,7 @@
             <dependency>
                 <groupId>it.unimi.dsi</groupId>
                 <artifactId>fastutil</artifactId>
-                <version>8.2.2</version>
+                <version>8.3.0</version>
             </dependency>
 
             <!-- Testing -->
@@ -139,7 +139,7 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.12.2</version>
+                <version>3.13.2</version>
             </dependency>
             <dependency>
                 <groupId>org.openjdk.jmh</groupId>
@@ -234,8 +234,8 @@
                     <configuration>
                         <links>
                             <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>http://hadoop.apache.org/docs/r3.2.0/api/</link>
-                            <link>https://google.github.io/guava/releases/27.1-jre/api/docs/</link>
+                            <link>http://hadoop.apache.org/docs/r3.2.1/api/</link>
+                            <link>https://google.github.io/guava/releases/28.1-jre/api/docs/</link>
                         </links>
                     </configuration>
                 </plugin>
