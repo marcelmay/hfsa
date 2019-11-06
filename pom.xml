@@ -285,6 +285,7 @@
                     <configuration>
                         <doCheck>false</doCheck>
                         <doUpdate>false</doUpdate>
+                        <revisionOnScmFailure>-scm-revision-not-available-</revisionOnScmFailure>
                     </configuration>
                 </plugin>
                 <plugin>
