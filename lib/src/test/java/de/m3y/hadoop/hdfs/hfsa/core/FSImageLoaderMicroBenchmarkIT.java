@@ -1,6 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.core;
 
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.profile.GCProfiler;
+import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -53,6 +55,7 @@ public class FSImageLoaderMicroBenchmarkIT {
 
     @Test
     public void runMicroBenchMark() throws RunnerException {
+        new File("target/jmh-report").mkdirs();
         Options opt = new OptionsBuilder()
                 .include(getClass().getName())
                 .mode(Mode.AverageTime)
@@ -60,6 +63,8 @@ public class FSImageLoaderMicroBenchmarkIT {
                 .addProfiler(GCProfiler.class)
                 .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m","-Dlog4j.configuration=log4j-it.xml")
                 .shouldDoGC(true)
+                .resultFormat(ResultFormatType.JSON)
+                .result("target/jmh-report/"+getClass().getSimpleName()+".json")
                 .forks(1)
                 .build();
 
