@@ -84,7 +84,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
     static class IECBinaryConverter implements CommandLine.ITypeConverter<Long> {
         @Override
-        public Long convert(String value) throws Exception {
+        public Long convert(String value) {
             try {
                 return IECBinary.parse(value);
             } catch (Exception ex) {

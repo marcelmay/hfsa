@@ -64,9 +64,8 @@ public class FSImageLoader {
     public static final String ROOT_PATH = "/";
 
     private final StringTable stringTable;
-    // byte representation of inodes, sorted by id
     private final INodesRepository inodes;
-    private final Long2ObjectLinkedOpenHashMap<long[]> dirmap;
+    private final Long2ObjectLinkedOpenHashMap<long[]> dirMap;
 
     /**
      * Manages inodes.
@@ -95,7 +94,7 @@ public class FSImageLoader {
     static class PrimitiveArrayINodesRepository implements INodesRepository {
         private static final Comparator<byte[]> INODE_BYTES_COMPARATOR =
                 Comparator.comparingLong(PrimitiveArrayINodesRepository::extractNodeId);
-
+        // byte representation of inodes, sorted by id
         private final byte[][] inodes;
         // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
         private final long[] inodesIdxToIdCache;
@@ -168,7 +167,7 @@ public class FSImageLoader {
             // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
             // In a micro benchmark, it is several times(!) faster than
             // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
-            // - obiously, there are less instances created and less unmarshalling involed.
+            // - obviously, there are less instances created and less unmarshalling involved.
 
             // INode wire format:
             // tag 8
@@ -196,10 +195,10 @@ public class FSImageLoader {
 
 
     private FSImageLoader(StringTable stringTable, INodesRepository inodes,
-                          Long2ObjectLinkedOpenHashMap<long[]> dirmap) {
+                          Long2ObjectLinkedOpenHashMap<long[]> dirMap) {
         this.stringTable = stringTable;
         this.inodes = inodes;
-        this.dirmap = dirmap;
+        this.dirMap = dirMap;
     }
 
 
@@ -275,10 +274,10 @@ public class FSImageLoader {
             INodesRepository inodes = loadSection(fin, codec, sectionInode, FSImageLoader::loadINodeSection); // SLOW!!!
 
             FileSummary.Section sectionInodeDir = findSectionByName(sectionsList, SectionName.INODE_DIR);
-            Long2ObjectLinkedOpenHashMap<long[]> dirmap = loadSection(fin, codec, sectionInodeDir,
+            Long2ObjectLinkedOpenHashMap<long[]> dirMap = loadSection(fin, codec, sectionInodeDir,
                     (InputStream is, long length) -> FSImageLoader.loadINodeDirectorySection(is, refIdList)); // SLOW!!!
 
-            return new FSImageLoader(stringTable, inodes, dirmap);
+            return new FSImageLoader(stringTable, inodes, dirMap);
         }
     }
 
@@ -374,7 +373,7 @@ public class FSImageLoader {
 
         // Child dirs?
         final long pathNodeId = pathNode.getId();
-        long[] children = dirmap.get(pathNodeId);
+        long[] children = dirMap.get(pathNodeId);
         if (null != children) {
             // Visit children
             for (long cid : children) {
@@ -405,7 +404,7 @@ public class FSImageLoader {
         FsImageProto.INodeSection.INode rootNode = getINodeFromPath(path);
         visitor.onDirectory(rootNode, path);
         final long rootNodeId = rootNode.getId();
-        final long[] children = dirmap.get(rootNodeId);
+        final long[] children = dirMap.get(rootNodeId);
         if (null != children) {
             List<FsImageProto.INodeSection.INode> dirs = new ArrayList<>();
             for (long cid : children) {
@@ -435,7 +434,7 @@ public class FSImageLoader {
         if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
             visitor.onDirectory(inode, path);
             final long inodeId = inode.getId();
-            final long[] children = dirmap.get(inodeId);
+            final long[] children = dirMap.get(inodeId);
             if (null != children) {
                 String newPath;
                 if (ROOT_PATH.equals(path)) {
@@ -466,7 +465,7 @@ public class FSImageLoader {
      */
     public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
         final long nodeId = lookup(path);
-        long[] children = dirmap.get(nodeId);
+        long[] children = dirMap.get(nodeId);
         if (null == children) {
             throw new IllegalArgumentException("Path " + path + " is invalid");
         }
@@ -515,7 +514,7 @@ public class FSImageLoader {
                 continue;
             }
 
-            final long[] children = dirmap.get(id);
+            final long[] children = dirMap.get(id);
             if (children == null) {
                 throw new FileNotFoundException(path);
             }
@@ -563,7 +562,7 @@ public class FSImageLoader {
      */
     public List<String> getChildPaths(String path) throws IOException {
         final long rootNodeId = lookup(path);
-        long[] children = dirmap.get(rootNodeId);
+        long[] children = dirMap.get(rootNodeId);
         if (null == children) {
             throw new NoSuchElementException("No node found for path " + path);
         }
@@ -599,7 +598,7 @@ public class FSImageLoader {
      * @return true, if child inodes exist.
      */
     public boolean hasChildren(long nodeId) {
-        long[] children = dirmap.get(nodeId);
+        long[] children = dirMap.get(nodeId);
         return null != children && children.length > 0;
     }
 
@@ -732,7 +731,7 @@ public class FSImageLoader {
 
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {
         final long inodeId = inode.getId();
-        final long[] children = dirmap.get(inodeId);
+        final long[] children = dirMap.get(inodeId);
         return null != children ? children.length : 0;
     }
 

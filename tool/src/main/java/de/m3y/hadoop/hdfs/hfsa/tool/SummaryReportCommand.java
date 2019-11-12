@@ -163,7 +163,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
         final String bucketFormatValue = FormatUtil.formatForLengths(maxLength, "d");
         final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
-        final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
+        final String bucketHeader = String.format(bucketFormatHeader, bucketUnits);
 
         out.println(
                 "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
