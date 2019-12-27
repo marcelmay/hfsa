@@ -88,7 +88,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>28.1-jre</version>
+                <version>28.2-jre</version>
             </dependency>
             <dependency>
                 <groupId>commons-collections</groupId>
@@ -103,17 +103,17 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
-                <version>1.7.26</version>
+                <version>1.7.30</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.26</version>
+                <version>1.7.30</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
-                <version>1.7.26</version>
+                <version>1.7.30</version>
             </dependency>
             <dependency>
                 <groupId>info.picocli</groupId>
