@@ -55,7 +55,8 @@ public class FSImageLoaderMicroBenchmarkIT {
 
     @Test
     public void runMicroBenchMark() throws RunnerException {
-        new File("target/jmh-report").mkdirs();
+        String reportPath = "target/jmh-reports/";
+        new File(reportPath).mkdirs();
         Options opt = new OptionsBuilder()
                 .include(getClass().getName())
                 .mode(Mode.AverageTime)
@@ -64,7 +65,7 @@ public class FSImageLoaderMicroBenchmarkIT {
                 .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m","-Dlog4j.configuration=log4j-it.xml")
                 .shouldDoGC(true)
                 .resultFormat(ResultFormatType.JSON)
-                .result("target/jmh-report/"+getClass().getSimpleName()+".json")
+                .result(reportPath+getClass().getSimpleName()+".json")
                 .forks(1)
                 .build();
 
