@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
@@ -77,6 +78,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-hdfs</artifactId>
+                <version>3.2.1</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs-client</artifactId>
                 <version>3.2.1</version>
             </dependency>
@@ -84,6 +91,12 @@
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
                 <version>3.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>3.2.1</version>
+                <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -328,6 +341,12 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>generator</id>
+            <modules>
+                <module>fsimage-generator</module>
+            </modules>
+        </profile>
         <profile>
             <!--
               Release profile, activating ossrh specific release settings.
