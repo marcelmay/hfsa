@@ -52,27 +52,35 @@ public class FSImageGenerator {
                 abc.chars().forEach(c -> stack.push("/" + (char) c));
 
                 while (!stack.isEmpty()) {
-                    String s = stack.pop();
-                    final Path path = new Path(s);
+                    String pathName = stack.pop();
+                    final Path path = new Path(pathName);
+
                     if (dirCounter > 0 && dirCounter % 100 == 0) {
                         LOG.debug("Current path: " + path);
                         LOG.info("Progress: " + dirCounter + " directories and " + fileCounter + " files...");
                     }
+
+                    // Create directory
                     dfs.mkdirs(path);
                     dirCounter++;
+
+                    // Fill directory with some files
                     for (int i = 0; i < abc.length(); i++) {
                         for (int c = 0; c < filesPerDirectoryFactor; c++) {
                             dfs.createNewFile(new Path(path, "" + abc.charAt(i) + "_" + c));
                             fileCounter++;
                         }
                     }
+
                     final String name = path.getName();
                     if (name.length() < maxDirDepth) {
                         for (int i = 0; i < maxDirWidth /* Limit width for depth */; i++) {
-                            stack.push(s + "/" + name + abc.charAt(i));
+                            stack.push(pathName + "/" + name + abc.charAt(i));
                         }
                     }
                 }
+
+                // Dump FSImage and make backup of file
                 dfs.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_ENTER);
                 dfs.saveNamespace();
                 final FSImage fsImage = cluster.getNameNode().getFSImage();
@@ -82,6 +90,7 @@ public class FSImageGenerator {
                     newFsImage.delete();
                 }
                 highestFsImageName.renameTo(newFsImage);
+
                 LOG.info("Created new FSImage containing meta data for " + dirCounter + " directories and "
                         + fileCounter + " files");
                 LOG.info("FSImage path : " + newFsImage.getAbsolutePath());
