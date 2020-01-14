@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <!-- Current Thread: [%t] -->
+            <param name="ConversionPattern" value="%d %-5p %c{1} %x - %m%n"/>
+        </layout>
+    </appender>
+
+    <!-- Reduce Hadoop noise level -->
+    <!-- If org.apache.hadoop is on INFO, you'll want these:
+    <logger name="org.apache.hadoop.hdfs.StateChange">
+        <level value="WARN"/>
+    </logger>
+    <logger name="org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit">
+        <level value="WARN"/>
+    </logger>
+    -->
+    <logger name="org.apache.hadoop">
+        <level value="ERROR"/>
+    </logger>
+    <logger name="BlockStateChange">
+        <level value="WARN"/>
+    </logger>
+    <logger name="org.eclipse">
+        <level value="WARN"/>
+    </logger>
+
+    <root>
+        <priority value ="info" />
+        <appender-ref ref="console" />
+    </root>
+
+</log4j:configuration>
