@@ -30,8 +30,8 @@ public class FSImageLoaderMicroBenchmarkIT {
 
            @Setup(Level.Trial)
            public void setUp() {
-               try {
-                   loader = FSImageLoader.load(openFile());
+               try(RandomAccessFile file = openFile()) {
+                   loader = FSImageLoader.load(file);
                } catch (IOException e) {
                    throw new IllegalStateException(e);
                }
@@ -40,7 +40,9 @@ public class FSImageLoaderMicroBenchmarkIT {
 
     @Benchmark
     public void loadFsImageFile(Blackhole blackhole) throws IOException {
-        blackhole.consume(FSImageLoader.load(openFile()));
+        try(RandomAccessFile file = openFile()) {
+            blackhole.consume(FSImageLoader.load(file));
+        }
     }
 
     @Benchmark
