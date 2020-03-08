@@ -98,10 +98,12 @@ public class FSImageLoader {
         private final byte[][] inodes;
         // inodesIdxToIdCache contains the INode ID, to avoid redundant parsing when using fromINodeId
         private final long[] inodesIdxToIdCache;
+        private final FsImageProto.INodeSection.INode rootInode;
 
-        PrimitiveArrayINodesRepository(byte[][] buf, long[] inodeOffsets) {
+        PrimitiveArrayINodesRepository(byte[][] buf, long[] inodeOffsets) throws InvalidProtocolBufferException {
             inodes = buf;
             this.inodesIdxToIdCache = inodeOffsets;
+            rootInode = FsImageProto.INodeSection.INode.parseFrom(getInodeAsBytes(INodeId.ROOT_INODE_ID));
         }
 
         static PrimitiveArrayINodesRepository create(FsImageProto.INodeSection s, InputStream in, long length) throws IOException {
@@ -155,6 +157,9 @@ public class FSImageLoader {
 
         @Override
         public FsImageProto.INodeSection.INode getInode(long inodeId) throws InvalidProtocolBufferException {
+            if(INodeId.ROOT_INODE_ID == inodeId) {
+                return rootInode;
+            }
             return FsImageProto.INodeSection.INode.parseFrom(getInodeAsBytes(inodeId));
         }
 
@@ -464,7 +469,7 @@ public class FSImageLoader {
      * @throws IOException on error, eg FileNotFoundException if path does not exist
      */
     public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
-        final long nodeId = lookup(path);
+        final long nodeId = lookupInodeId(path);
         long[] children = dirMap.get(nodeId);
         if (null == children) {
             throw new IllegalArgumentException("Path " + path + " is invalid");
@@ -545,7 +550,7 @@ public class FSImageLoader {
      */
     public boolean hasINode(String path) throws IOException {
         try {
-            lookup(path);
+            lookupInodeId(path);
             return true;
         } catch (FileNotFoundException e) {
             // not found
@@ -561,7 +566,7 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public List<String> getChildPaths(String path) throws IOException {
-        final long rootNodeId = lookup(path);
+        final long rootNodeId = lookupInodeId(path);
         long[] children = dirMap.get(rootNodeId);
         if (null == children) {
             throw new NoSuchElementException("No node found for path " + path);
@@ -587,7 +592,7 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public boolean hasChildren(String path) throws IOException {
-        final long rootNodeId = lookup(path);
+        final long rootNodeId = lookupInodeId(path);
         return hasChildren(rootNodeId);
     }
 
@@ -647,7 +652,16 @@ public class FSImageLoader {
      * @throws IOException on error.
      */
     public PermissionStatus getPermissionStatus(String path) throws IOException {
-        FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
+        return getPermissionStatus(getINodeFromPath(path));
+    }
+
+    /**
+     * Gets the permission status for a file or directory or symlink path.
+     *
+     * @param inode the path for a file or directory or symlink.
+     * @return the permission status.
+     */
+    public PermissionStatus getPermissionStatus(FsImageProto.INodeSection.INode inode) {
         switch (inode.getType()) {
             case FILE: {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
@@ -676,7 +690,7 @@ public class FSImageLoader {
      * @param path the path.
      * @return the inode id.
      */
-    private long lookup(String path) throws IOException {
+    private long lookupInodeId(String path) throws IOException {
         return getINodeFromPath(path).getId();
     }
 
