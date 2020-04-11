@@ -16,7 +16,7 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
 See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
 
 The following lines visit all directory-, file- and symlink inodes:
-```
+```java
 RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
 FSImageLoader.load(file)
              .visit(new FsVisitor() {
