@@ -25,34 +25,46 @@ public class FSImageLoaderMicroBenchmarkIT {
     }
 
     @State(Scope.Benchmark)
-       public static class LoaderState {
-            FSImageLoader loader;
+    public static class LoaderState {
+        FsImageLoader imageLoader = new FsImageLoader.Builder().build();
+        FsImageLoader parallelImageLoader = new FsImageLoader.Builder().parallel().build();
+        FsVisitor.Builder visitorBuilder = new FsVisitor.Builder();
+        FsVisitor.Builder parallelVisitorBuilder = new FsVisitor.Builder().parallel();
 
-           @Setup(Level.Trial)
-           public void setUp() {
-               try(RandomAccessFile file = openFile()) {
-                   loader = FSImageLoader.load(file);
-               } catch (IOException e) {
-                   throw new IllegalStateException(e);
-               }
-           }
-       }
+        FsImageData fsImageData;
+
+        @Setup(Level.Trial)
+        public void setUp() {
+            try (RandomAccessFile file = openFile()) {
+                fsImageData = new FsImageLoader.Builder().build().load(file);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
 
     @Benchmark
-    public void loadFsImageFile(Blackhole blackhole) throws IOException {
-        try(RandomAccessFile file = openFile()) {
-            blackhole.consume(FSImageLoader.load(file));
+    public void loadFsImageFileParallel(LoaderState state, Blackhole blackhole) throws IOException {
+        try (RandomAccessFile file = openFile()) {
+            blackhole.consume(state.parallelImageLoader.load(file));
+        }
+    }
+
+    @Benchmark
+    public void loadFsImageFile(LoaderState state, Blackhole blackhole) throws IOException {
+        try (RandomAccessFile file = openFile()) {
+            blackhole.consume(state.imageLoader.load(file));
         }
     }
 
     @Benchmark
     public void visitFsImageFile(LoaderState state, Blackhole blackhole) throws IOException {
-        state.loader.visit(new BenchmarkVisitor(blackhole));
+        state.visitorBuilder.visit(state.fsImageData, new BenchmarkVisitor(blackhole));
     }
 
     @Benchmark
     public void visitParallelFsImageFile(LoaderState state, Blackhole blackhole) throws IOException {
-        state.loader.visitParallel(new BenchmarkVisitor(blackhole));
+        state.parallelVisitorBuilder.visit(state.fsImageData, new BenchmarkVisitor(blackhole));
     }
 
     @Test
@@ -64,10 +76,10 @@ public class FSImageLoaderMicroBenchmarkIT {
                 .mode(Mode.AverageTime)
                 .timeUnit(TimeUnit.MILLISECONDS)
                 .addProfiler(GCProfiler.class)
-                .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m","-Dlog4j.configuration=log4j-it.xml")
+                .jvmArgs("-server", "-XX:+UseG1GC", "-Xmx2048m", "-Dlog4j.configuration=log4j-it.xml")
                 .shouldDoGC(true)
                 .resultFormat(ResultFormatType.JSON)
-                .result(reportPath+getClass().getSimpleName()+".json")
+                .result(reportPath + getClass().getSimpleName() + ".json")
                 .forks(1)
                 .build();
 
@@ -95,5 +107,9 @@ public class FSImageLoaderMicroBenchmarkIT {
         public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
             blackhole.consume(inode);
         }
+    }
+
+    public static void main(String[] args) throws RunnerException {
+        new FSImageLoaderMicroBenchmarkIT().runMicroBenchMark();
     }
 }

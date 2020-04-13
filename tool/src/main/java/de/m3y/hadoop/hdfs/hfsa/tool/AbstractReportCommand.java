@@ -4,7 +4,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageLoader;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ abstract class AbstractReportCommand implements Runnable {
     @CommandLine.ParentCommand
     protected HdfsFSImageTool.MainCommand mainCommand;
 
-    protected FSImageLoader loadFsImage() {
+    protected FsImageData loadFsImage() {
         try (RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r")) {
             if(log.isInfoEnabled()) {
                 log.info("Starting loading {} of size {}", mainCommand.fsImageFile, IECBinary.format(file.length()));
@@ -36,7 +37,7 @@ abstract class AbstractReportCommand implements Runnable {
                 mainCommand.out.println();
             }
 
-            return FSImageLoader.load(file);
+            return new FsImageLoader.Builder().parallel().build().load(file);
         } catch (FileNotFoundException e) {
             mainCommand.err.println("No such fsimage file " + mainCommand.fsImageFile);
             throw new IllegalStateException("No such fsimage file " + mainCommand.fsImageFile, e);

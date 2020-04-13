@@ -7,8 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
+import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
@@ -130,12 +131,12 @@ class SummaryReportCommand extends AbstractReportCommand {
 
     @Override
     public void run() {
-        final FSImageLoader loader = loadFsImage();
-        if (null != loader) {
+        final FsImageData fsImageData = loadFsImage();
+        if (null != fsImageData) {
             for (String dir : mainCommand.dirs) {
                 log.info("Visiting {} ...", dir);
                 long start = System.currentTimeMillis();
-                final Report report = computeReport(loader, dir);
+                final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
                 doSummary(report);
@@ -231,7 +232,7 @@ class SummaryReportCommand extends AbstractReportCommand {
         return filtered;
     }
 
-    Report computeReport(FSImageLoader loader, String dirPath) {
+    Report computeReport(FsImageData fsImageData, String dirPath) {
         final Report report = new Report(dirPath);
         final OverallStats overallStats = report.overallStats;
 
@@ -240,9 +241,9 @@ class SummaryReportCommand extends AbstractReportCommand {
             public void onFile(FsImageProto.INodeSection.INode inode, String path) {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
 
-                PermissionStatus p = loader.getPermissionStatus(f.getPermission());
+                PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
 
-                final long fileSize = FSImageLoader.getFileSize(f);
+                final long fileSize = FsUtil.getFileSize(f);
                 final long fileBlocks = f.getBlocksCount();
                 synchronized (overallStats) {
                     overallStats.fileSizeBuckets.add(fileSize);
@@ -275,7 +276,7 @@ class SummaryReportCommand extends AbstractReportCommand {
             @Override
             public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                PermissionStatus p = loader.getPermissionStatus(d.getPermission());
+                PermissionStatus p = fsImageData.getPermissionStatus(d.getPermission());
 
                 // Group stats
                 final String groupName = p.getGroupName();
@@ -293,7 +294,7 @@ class SummaryReportCommand extends AbstractReportCommand {
             @Override
             public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
                 final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
-                PermissionStatus p = loader.getPermissionStatus(symlink.getPermission());
+                PermissionStatus p = fsImageData.getPermissionStatus(symlink.getPermission());
 
                 // Group stats
                 final String groupName = p.getGroupName();
@@ -310,7 +311,7 @@ class SummaryReportCommand extends AbstractReportCommand {
         };
 
         try {
-            loader.visitParallel(visitor, dirPath);
+            new FsVisitor.Builder().parallel().visit(fsImageData, visitor, dirPath);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

@@ -11,8 +11,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FSImageLoader;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
+import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
@@ -107,12 +108,12 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
 
     @Override
     public void run() {
-        final FSImageLoader loader = loadFsImage();
-        if (null != loader) {
+        final FsImageData fsImageData = loadFsImage();
+        if (null != fsImageData) {
             for (String dir : mainCommand.dirs) {
                 log.info("Visiting {} ...", dir);
                 long start = System.currentTimeMillis();
-                final Report report = computeReport(loader, dir);
+                final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
                 handleReport(report);
@@ -237,7 +238,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
     }
 
 
-    private Report computeReport(FSImageLoader loader, String dir) {
+    private Report computeReport(FsImageData fsImageData, String dir) {
         Report report = new Report();
         Predicate<String> userNameFilter = createUserNameFilter(mainCommand.userNameFilter);
 
@@ -246,9 +247,9 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                 @Override
                 public void onFile(FsImageProto.INodeSection.INode inode, String path) {
                     FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                    final long fileSizeBytes = FSImageLoader.getFileSize(f);
+                    final long fileSizeBytes = FsUtil.getFileSize(f);
                     if (fileSizeBytes < fileSizeLimitBytes) {
-                        PermissionStatus p = loader.getPermissionStatus(f.getPermission());
+                        PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
                         if (userNameFilter.test(p.getUserName())) {
                             report.getOrCreateUserReport(p.getUserName()).increment(path);
                         }
@@ -266,7 +267,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                     // Not needed
                 }
             };
-            loader.visitParallel(visitor, dir);
+            new FsVisitor.Builder().parallel().visit(fsImageData, visitor, dir);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -281,12 +282,12 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         final Map<String, LongAdder> aggregates = new HashMap<>();
         for (Map.Entry<String, LongAdder> entry : entries) {
             String path = entry.getKey();
-            if (FSImageLoader.ROOT_PATH.equals(path)) {
+            if (FsImageData.ROOT_PATH.equals(path)) {
                 continue;
             }
             long smallFilesCount = entry.getValue().longValue();
             for (int idx = path.lastIndexOf('/'); idx >= 0; idx = path.lastIndexOf('/', idx - 1)) {
-                String parentPath = (0 == idx ? FSImageLoader.ROOT_PATH : path.substring(0, idx));
+                String parentPath = (0 == idx ? FsImageData.ROOT_PATH : path.substring(0, idx));
                 aggregates.computeIfAbsent(parentPath, v -> new LongAdder()).add(smallFilesCount);
             }
         }
