@@ -121,12 +121,10 @@ public interface FsVisitor {
 
                 // Child dirs?
                 final long pathNodeId = pathNode.getId();
-                long[] children = fsImageData.getChildINodeIds(pathNodeId);
-                if (null != children) {
-                    // Visit children
-                    for (long cid : children) {
-                        visit(fsImageData, visitor, fsImageData.getInode(cid), path);
-                    }
+                final long[] children = fsImageData.getChildINodeIds(pathNodeId);
+                // Visit children
+                for (long cid : children) {
+                    visit(fsImageData, visitor, fsImageData.getInode(cid), path);
                 }
             }
 
@@ -135,7 +133,7 @@ public interface FsVisitor {
                     visitor.onDirectory(inode, path);
                     final long inodeId = inode.getId();
                     final long[] children = fsImageData.getChildINodeIds(inodeId);
-                    if (null != children) {
+                    if (children.length>0) {
                         String newPath;
                         if (ROOT_PATH.equals(path)) {
                             newPath = path + inode.getName().toStringUtf8();
@@ -181,7 +179,7 @@ public interface FsVisitor {
                 visitor.onDirectory(rootNode, path);
                 final long rootNodeId = rootNode.getId();
                 final long[] children = fsImageData.getChildINodeIds(rootNodeId);
-                if (null != children) {
+                if (children.length>0) {
                     List<FsImageProto.INodeSection.INode> dirs = new ArrayList<>();
                     for (long cid : children) {
                         final FsImageProto.INodeSection.INode inode = fsImageData.getInode(cid);
@@ -195,7 +193,7 @@ public interface FsVisitor {
                         try {
                             visit(fsImageData, visitor, inode, path);
                         } catch (IOException e) {
-                            LOG.error("Can not traverse " + inode.getId() + " : " + inode.getName().toStringUtf8(), e);
+                            LOG.error("Can not traverse {} : {}", inode.getId(), inode.getName().toStringUtf8(), e);
                         }
                     });
                 }
@@ -206,7 +204,7 @@ public interface FsVisitor {
                     visitor.onDirectory(inode, path);
                     final long inodeId = inode.getId();
                     final long[] children = fsImageData.getChildINodeIds(inodeId);
-                    if (null != children) {
+                    if (children.length > 0) {
                         String newPath;
                         if (ROOT_PATH.equals(path)) {
                             newPath = path + inode.getName().toStringUtf8();

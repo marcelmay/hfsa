@@ -5,12 +5,13 @@ import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.log4j.Level;
-import org.apache.log4j.spi.RootLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+
+import static org.apache.log4j.Logger.getRootLogger;
 
 /**
  * HDFS FSImage Tool extracts a summary of HDFS Usage from fsimage.
@@ -74,7 +75,7 @@ public class HdfsFSImageTool {
                     @Override
                     public List<Object> handleExecutionException(CommandLine.ExecutionException ex,
                                                                  CommandLine.ParseResult parseResult) {
-                        if (RootLogger.getRootLogger().isInfoEnabled()) {
+                        if (getRootLogger().isInfoEnabled()) {
                             // Includes stack trace. Only show with verbosity enabled.
                             return super.handleExecutionException(ex, parseResult);
                         }
@@ -103,15 +104,16 @@ public class HdfsFSImageTool {
     }
 
     private static void handleVerboseMode(CommandLine.Model.OptionSpec verbose) {
+        final org.apache.log4j.Logger rootLogger = getRootLogger();
         if (null == verbose) {
-            RootLogger.getRootLogger().setLevel(Level.WARN);
+            rootLogger.setLevel(Level.WARN);
         } else {
             boolean[] values = verbose.getValue();
             if (null != values) {
                 if (values.length == 1) {
-                    RootLogger.getRootLogger().setLevel(Level.INFO);
+                    rootLogger.setLevel(Level.INFO);
                 } else {
-                    RootLogger.getRootLogger().setLevel(Level.DEBUG);
+                    rootLogger.setLevel(Level.DEBUG);
                     LOG.debug("Debug logging enabled");
                 }
             }

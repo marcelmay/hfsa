@@ -138,6 +138,19 @@ public class FsImageLoader {
                 // TODO: Cache INodes?
                 Arrays.sort(inodes, INODE_BYTES_COMPARATOR);
             }
+
+            protected long[] computeInodesIdxToIdCache(byte[][] buf) {
+                long start = System.currentTimeMillis();
+                long[] cache = new long[buf.length];
+                // Compute inode idx to inode id cache
+                for (int i = 0; i < cache.length; i++) { // TODO: Parallel?
+                    cache[i] = extractNodeId(buf[i]);
+                }
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
+                }
+                return cache;
+            }
         }
 
         static class ParallelBuilder extends Builder {
@@ -147,18 +160,6 @@ public class FsImageLoader {
             }
         }
 
-        private static long[] computeInodesIdxToIdCache(byte[][] buf) {
-            long start = System.currentTimeMillis();
-            long[] cache = new long[buf.length];
-            // Compute inode idx to inode id cache
-            for (int i = 0; i < cache.length; i++) { // TODO: Parallel?
-                cache[i] = extractNodeId(buf[i]);
-            }
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
-            }
-            return cache;
-        }
 
         private byte[] getInodeAsBytes(final long inodeId) {
             // Binary search over sorted node id array
@@ -366,24 +367,14 @@ public class FsImageLoader {
     }
 
     public static class Builder {
-        private LoadingStrategy loadingStrategy = new LoadingStrategy() {
-            @Override
-            public INodesRepositoryBuilder createInodeRepositoryBuilder() {
-                return new PrimitiveArrayINodesRepository.Builder();
-            }
-        };
+        private LoadingStrategy loadingStrategy = PrimitiveArrayINodesRepository.Builder::new;
 
         interface LoadingStrategy {
             INodesRepositoryBuilder createInodeRepositoryBuilder();
         }
 
         public Builder parallel() {
-            this.loadingStrategy = new LoadingStrategy() {
-                @Override
-                public INodesRepositoryBuilder createInodeRepositoryBuilder() {
-                    return new PrimitiveArrayINodesRepository.ParallelBuilder();
-                }
-            };
+            this.loadingStrategy = PrimitiveArrayINodesRepository.ParallelBuilder::new;
             return this;
         }
 

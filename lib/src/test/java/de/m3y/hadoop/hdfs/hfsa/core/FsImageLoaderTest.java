@@ -7,6 +7,7 @@ import java.io.RandomAccessFile;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static de.m3y.hadoop.hdfs.hfsa.core.FsImageData.ROOT_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -60,8 +62,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  *
  * </pre>
  */
-public class FSImageLoaderTest {
-    private static final Logger LOG = LoggerFactory.getLogger(FSImageLoaderTest.class);
+public class FsImageLoaderTest {
+    private static final Logger LOG = LoggerFactory.getLogger(FsImageLoaderTest.class);
     private FsImageData fsImageData;
 
     private final Set<String> groupNames = new HashSet<>();
@@ -88,15 +90,15 @@ public class FSImageLoaderTest {
 
     @Test
     public void testLoadAndVisitParallel() throws IOException {
-        loadAndVisit(fsImageData,  new FsVisitor.Builder().parallel());
+        loadAndVisit(fsImageData, new FsVisitor.Builder().parallel());
     }
 
     @Test
     public void testLoadAndVisit() throws IOException {
-        loadAndVisit(fsImageData,  new FsVisitor.Builder());
+        loadAndVisit(fsImageData, new FsVisitor.Builder());
     }
 
-    private void loadAndVisit(FsImageData fsImageData,  FsVisitor.Builder builder) throws IOException {
+    private void loadAndVisit(FsImageData fsImageData, FsVisitor.Builder builder) throws IOException {
         Set<String> paths = new HashSet<>();
         Set<String> files = new HashSet<>();
 
@@ -357,6 +359,7 @@ public class FSImageLoaderTest {
     public void testLoadEmptyFSImage() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile("src/test/resources/fsimage_0000000000000000000", "r")) {
             final FsImageData emptyImage = new FsImageLoader.Builder().build().load(file);
+            AtomicBoolean rootVisited = new AtomicBoolean(false);
             new FsVisitor.Builder().visit(emptyImage, new FsVisitor() {
                 @Override
                 public void onFile(FsImageProto.INodeSection.INode inode, String path) {
@@ -366,6 +369,7 @@ public class FSImageLoaderTest {
                 @Override
                 public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
                     // Nothing
+                    rootVisited.set(ROOT_PATH.equals(path));
                 }
 
                 @Override
@@ -373,6 +377,7 @@ public class FSImageLoaderTest {
                     // Nothing
                 }
             });
+            assertThat(rootVisited).isTrue();
         }
     }
 

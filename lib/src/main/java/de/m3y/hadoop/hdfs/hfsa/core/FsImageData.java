@@ -49,8 +49,8 @@ public class FsImageData {
      */
     public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
         final FsImageProto.INodeSection.INode nodeId = getINodeFromPath(path);
-        if(!FsUtil.isDirectory(nodeId)) {
-            throw new IllegalArgumentException("Expected directory but <"+path+"> is of type "+nodeId.getType());
+        if (!FsUtil.isDirectory(nodeId)) {
+            throw new IllegalArgumentException("Expected directory but <" + path + "> is of type " + nodeId.getType());
         }
         long[] children = dirMap.get(nodeId.getId());
         if (children.length == 0) {
@@ -154,7 +154,7 @@ public class FsImageData {
     public List<String> getChildDirectories(String path) throws IOException {
         final long parentNodeId = lookupInodeId(path);
         long[] children = dirMap.get(parentNodeId);
-        if (children.length ==0) {
+        if (children.length == 0) {
             return Collections.emptyList();
         } else {
             List<String> childPaths = new ArrayList<>();
@@ -214,19 +214,16 @@ public class FsImageData {
     protected List<AclEntry> getAclEntryList(String path) throws IOException {
         FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
         switch (inode.getType()) {
-            case FILE: {
+            case FILE:
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
                 return FSImageFormatPBINode.Loader.loadAclEntries(
                         f.getAcl(), stringTable);
-            }
-            case DIRECTORY: {
+            case DIRECTORY:
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 return FSImageFormatPBINode.Loader.loadAclEntries(
                         d.getAcl(), stringTable);
-            }
-            default: {
+            default:
                 return Collections.emptyList();
-            }
         }
     }
 
@@ -249,24 +246,21 @@ public class FsImageData {
      */
     public PermissionStatus getPermissionStatus(FsImageProto.INodeSection.INode inode) {
         switch (inode.getType()) {
-            case FILE: {
+            case FILE:
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
                 return FSImageFormatPBINode.Loader.loadPermission(
                         f.getPermission(), stringTable);
-            }
-            case DIRECTORY: {
+            case DIRECTORY:
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
                 return FSImageFormatPBINode.Loader.loadPermission(
                         d.getPermission(), stringTable);
-            }
-            case SYMLINK: {
+            case SYMLINK:
                 FsImageProto.INodeSection.INodeSymlink s = inode.getSymlink();
                 return FSImageFormatPBINode.Loader.loadPermission(
                         s.getPermission(), stringTable);
-            }
-            default: {
-                throw new IllegalStateException("No implementation for getting permission status for type " + inode.getType().name());
-            }
+            default:
+                throw new IllegalStateException("No implementation for getting permission status for type "
+                        + inode.getType().name());
         }
     }
 
