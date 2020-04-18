@@ -54,6 +54,7 @@
     <modules>
         <module>lib</module>
         <module>tool</module>
+        <module>fsimage-generator</module>
     </modules>
 
     <dependencyManagement>

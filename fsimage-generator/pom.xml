@@ -56,7 +56,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>de.m3y.hadoop.hdfs.hfsa.generator.FSImageGenerator</mainClass>
+                                    <mainClass>de.m3y.hadoop.hdfs.hfsa.generator.FsImageGenerator</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

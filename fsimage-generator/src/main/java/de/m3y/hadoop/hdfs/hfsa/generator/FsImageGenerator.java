@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Generates an FSImage for testing.
  */
-public class FSImageGenerator {
-    private static final Logger LOG = LoggerFactory.getLogger(FSImageGenerator.class);
+public class FsImageGenerator {
+    private static final Logger LOG = LoggerFactory.getLogger(FsImageGenerator.class);
     static String abc = "abcdefghijklmnopqrstuvwxyz";
 
     public static void main(String[] args) throws IOException {
