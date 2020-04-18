@@ -18,34 +18,38 @@ See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSIm
 The following lines visit all directory-, file- and symlink inodes:
 ```java
 RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
-FSImageLoader.load(file)
-             .visit(new FsVisitor() {
-                     @Override
-                     public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                         // Do something
-                         final String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
-                         System.out.println(fileName);
-                         FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                         PermissionStatus p = loader.getPermissionStatus(f.getPermission());
-                         ...
-                     }
+FsImageData fsimageData = new FsImageLoader.Builder()
+    .parallel().build()
+    .load(file);
+new FsVisitor.Builder()
+    .parallel()
+    .visit(fsimageData, new FsVisitor() {
+        @Override
+        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+            // Do something
+            String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+            System.out.println(fileName);
+            FsImageProto.INodeSection.INodeFile f = inode.getFile();
+            PermissionStatus p = loader.getPermissionStatus(f.getPermission());
+            ...
+        }
              
-                     @Override
-                     public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                         // Do something
-                         final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
-                         System.out.println("Directory : " + fileName);
-                         
-                         FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                         PermissionStatus p = loader.getPermissionStatus(d.getPermission());
-                         ...
-                     }
+        @Override
+        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+            // Do something
+            final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
+            System.out.println("Directory : " + fileName);
+            
+            FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
+            PermissionStatus p = loader.getPermissionStatus(d.getPermission());
+            ...
+        }
              
-                     @Override
-                     public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-                         // Do something
-                     }
-             }
+        @Override
+        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+            // Do something
+        }
+    }
 );
 ```
         
@@ -72,7 +76,7 @@ mvn clean install
 HFSA is released under the [Apache 2.0 license](LICENSE.txt).
 
 ```
-Copyright 2017-2019 Marcel May and project contributors
+Copyright 2017-2020 Marcel May and project contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
