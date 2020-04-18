@@ -16,6 +16,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
+            <artifactId>hfsa-lib</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
         </dependency>
@@ -40,7 +44,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>compile</scope>
+            <scope>compile</scope> <!-- Needs to be compile because of tmp. MiniDFSCluster spin up -->
         </dependency>
     </dependencies>
     <build>

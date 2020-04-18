@@ -3,8 +3,10 @@ package de.m3y.hadoop.hdfs.hfsa.generator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
+import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
@@ -19,13 +21,13 @@ import org.slf4j.LoggerFactory;
  */
 public class FsImageGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(FsImageGenerator.class);
-    static String abc = "abcdefghijklmnopqrstuvwxyz";
+    static final String ABC = "abcdefghijklmnopqrstuvwxyz";
 
     public static void main(String[] args) throws IOException {
         /* How deep aka directory levels  */
-        final int maxDirDepth = Math.min(5, abc.length());
+        final int maxDirDepth = Math.min(5, ABC.length());
         /* How many directory children per depth level */
-        final int maxDirWidth = Math.min(2, abc.length());
+        final int maxDirWidth = Math.min(2, ABC.length());
         /* "a...z".length * factor = number of files per directory generated */
         final int filesPerDirectoryFactor = 10;
 
@@ -37,10 +39,11 @@ public class FsImageGenerator {
          * 5/3/10 => 3146 directories and 817960 files, ~40MiB
          * 5/2/10 => 3146 directories and 817960 files, ~40MiB
          */
-        LOG.info("Max depth = " + maxDirDepth + ", max width = " + maxDirWidth + ", files-factor = " + filesPerDirectoryFactor);
-        int eDirs = abc.length() * (1 - Double.valueOf(Math.rint(Math.pow(maxDirWidth, maxDirDepth))).intValue()) / (1 - maxDirWidth);
-        LOG.info("Generates " + eDirs + " dirs (depth up to " + maxDirDepth + ") and "
-                + eDirs * abc.length() * filesPerDirectoryFactor + " files");
+        LOG.info("Max depth = {}, max width = {}, files-factor = {}",
+                maxDirDepth, maxDirWidth, filesPerDirectoryFactor);
+        int eDirs = ABC.length() * (1 - Double.valueOf(Math.rint(Math.pow(maxDirWidth, maxDirDepth))).intValue()) / (1 - maxDirWidth);
+        LOG.info("Generates {} dirs (depth up to {}) and {} files",
+                eDirs, maxDirDepth, eDirs * ABC.length() * filesPerDirectoryFactor);
 
         HdfsConfiguration conf = new HdfsConfiguration();
         try (MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).build()) {
@@ -48,16 +51,16 @@ public class FsImageGenerator {
             long fileCounter = 0;
 
             try (DistributedFileSystem dfs = cluster.getFileSystem()) {
-                Stack<String> stack = new Stack<>();
-                abc.chars().forEach(c -> stack.push("/" + (char) c));
+                Deque<String> stack = new ArrayDeque<>();
+                ABC.chars().forEach(c -> stack.push("/" + (char) c));
 
                 while (!stack.isEmpty()) {
                     String pathName = stack.pop();
                     final Path path = new Path(pathName);
 
                     if (dirCounter > 0 && dirCounter % 100 == 0) {
-                        LOG.debug("Current path: " + path);
-                        LOG.info("Progress: " + dirCounter + " directories and " + fileCounter + " files...");
+                        LOG.debug("Current path: {}", path);
+                        LOG.info("Progress: {} directories and {} files...", dirCounter, fileCounter);
                     }
 
                     // Create directory
@@ -65,9 +68,9 @@ public class FsImageGenerator {
                     dirCounter++;
 
                     // Fill directory with some files
-                    for (int i = 0; i < abc.length(); i++) {
+                    for (int i = 0; i < ABC.length(); i++) {
                         for (int c = 0; c < filesPerDirectoryFactor; c++) {
-                            dfs.createNewFile(new Path(path, "" + abc.charAt(i) + "_" + c));
+                            dfs.createNewFile(new Path(path, "" + ABC.charAt(i) + "_" + c));
                             fileCounter++;
                         }
                     }
@@ -75,7 +78,7 @@ public class FsImageGenerator {
                     final String name = path.getName();
                     if (name.length() < maxDirDepth) {
                         for (int i = 0; i < maxDirWidth /* Limit width for depth */; i++) {
-                            stack.push(pathName + "/" + name + abc.charAt(i));
+                            stack.push(pathName + "/" + name + ABC.charAt(i));
                         }
                     }
                 }
@@ -91,9 +94,9 @@ public class FsImageGenerator {
                 }
                 highestFsImageName.renameTo(newFsImage);
 
-                LOG.info("Created new FSImage containing meta data for " + dirCounter + " directories and "
-                        + fileCounter + " files");
-                LOG.info("FSImage path : " + newFsImage.getAbsolutePath());
+                LOG.info("Created new FSImage containing meta data for {} directories and {} files (size={})",
+                        dirCounter, fileCounter, IECBinary.format(newFsImage.length()));
+                LOG.info("FSImage path : {}", newFsImage.getAbsolutePath());
             }
         }
     }
