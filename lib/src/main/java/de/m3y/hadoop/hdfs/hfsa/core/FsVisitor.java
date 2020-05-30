@@ -43,7 +43,6 @@ public interface FsVisitor {
      */
     void onSymLink(FsImageProto.INodeSection.INode inode, String path);
 
-
     /**
      * Builds a visitor with single-threaded (default) or parallel execution.
      * <p>
@@ -65,6 +64,8 @@ public interface FsVisitor {
 
         /**
          * Copy constructor
+         *
+         * @param fsVisitorStrategy the strategy to visit eg in parallel.
          */
         protected Builder(FsVisitorStrategy fsVisitorStrategy) {
             this.fsVisitorStrategy = fsVisitorStrategy;
@@ -189,6 +190,7 @@ public interface FsVisitor {
                             visit(fsImageData, visitor, inode, path);
                         }
                     }
+                    // Go over top level dirs in parallel
                     dirs.parallelStream().forEach(inode -> {
                         try {
                             visit(fsImageData, visitor, inode, path);
@@ -220,7 +222,6 @@ public interface FsVisitor {
                 } else if (isSymlink(inode)) {
                     visitor.onSymLink(inode, path);
                 } else {
-                    // Should not happen
                     throw new IllegalStateException("Unsupported inode type " + inode.getType() + " for " + inode);
                 }
             }

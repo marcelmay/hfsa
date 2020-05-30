@@ -388,6 +388,6 @@ public class FsImageLoaderTest {
         assertThat(FsImageData.normalizePath("//test/foo")).isEqualTo("/test/foo");
         assertThat(FsImageData.normalizePath("/test/foo")).isEqualTo("/test/foo");
         assertThat(FsImageData.normalizePath("/test//foo")).isEqualTo("/test/foo");
-        assertThat(FsImageData.normalizePath("/test//foo///bar///")).isEqualTo("/test/foo/bar/");
+        assertThat(FsImageData.normalizePath("/test//foo///bar///")).isEqualTo("/test/foo/bar");
     }
 }

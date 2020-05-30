@@ -260,7 +260,7 @@ public class FsImageLoader {
                     new FastBufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
 
             final T apply = f.apply(is, section.getLength());
-            LOG.info("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
+            LOG.debug("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
             return apply;
         } catch (IOException ex) {
             throw new IllegalStateException("Can not load fsimage section " + section.getName(), ex);
@@ -326,7 +326,7 @@ public class FsImageLoader {
             }
             dirs.put(e.getParent(), l);
         }
-        LOG.info("Loaded {} directories", dirs.size());
+        LOG.debug("Loaded {} directories", dirs.size());
         return dirs;
     }
 
@@ -381,12 +381,5 @@ public class FsImageLoader {
         public FsImageLoader build() {
             return new FsImageLoader(loadingStrategy);
         }
-    }
-
-    public static void main(String[] args) throws IOException {
-        new FsImageLoader.Builder()
-                .parallel()
-                .build()
-                .load(new RandomAccessFile("src/test/resources/fsi_small_h3_2.img", "r"));
     }
 }

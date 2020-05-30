@@ -111,10 +111,10 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         final FsImageData fsImageData = loadFsImage();
         if (null != fsImageData) {
             for (String dir : mainCommand.dirs) {
-                log.info("Visiting {} ...", dir);
+                log.debug("Visiting {} ...", dir);
                 long start = System.currentTimeMillis();
                 final Report report = computeReport(fsImageData, dir);
-                log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
+                log.info("Visiting directory {} finished [{}ms].", dir, System.currentTimeMillis() - start);
 
                 handleReport(report);
             }
@@ -211,11 +211,11 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
     }
 
     static final Comparator<Map.Entry<String, LongAdder>> USER_REPORT_ENTRY_COMPARATOR = (o1, o2) -> {
-        int c = Long.compare(o1.getValue().longValue(), o2.getValue().longValue());
+        int c = Long.compare(o2.getValue().longValue(), o1.getValue().longValue()); // Inverted!
         if (0 == c) { // If same size, compare paths as secondary sort criteria
             return o1.getKey().compareTo(o2.getKey());
         }
-        return -c;
+        return c;
     };
 
     private void printUserDetailsReport(PrintStream out, UserReport userReport, int maxWidthUserName, int maxWidthSum,

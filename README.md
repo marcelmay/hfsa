@@ -18,9 +18,13 @@ See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSIm
 The following lines visit all directory-, file- and symlink inodes:
 ```java
 RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
+
+// Load file into memory
 FsImageData fsimageData = new FsImageLoader.Builder()
     .parallel().build()
     .load(file);
+
+// Traverse file hierarchy
 new FsVisitor.Builder()
     .parallel()
     .visit(fsimageData, new FsVisitor() {

@@ -18,36 +18,38 @@ public class SummaryReportCommandTest {
         SummaryReportCommand summaryReportCommand = new SummaryReportCommand();
         summaryReportCommand.mainCommand = new HdfsFSImageTool.MainCommand();
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        summaryReportCommand.mainCommand.out = new PrintStream(byteArrayOutputStream);
-        summaryReportCommand.mainCommand.err = summaryReportCommand.mainCommand.out;
+        try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
+            summaryReportCommand.mainCommand.out = printStream;
+            summaryReportCommand.mainCommand.err = summaryReportCommand.mainCommand.out;
 
-        summaryReportCommand.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
-        summaryReportCommand.run();
+            summaryReportCommand.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
+            summaryReportCommand.run();
 
-        assertThat(byteArrayOutputStream.toString())
-                .isEqualTo("\n" +
-                        "HDFS Summary : /\n" +
-                        "----------------\n" +
-                        "\n" +
-                        "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets \n" +
-                        "         |             |              |           |             |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "----------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "       3 |           3 |            8 |         0 |         11 |       331 |        12 |   0     2     1     2     1      0      2      1       1       1\n" +
-                        "\n" +
-                        "By group:            3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
-                        "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
-                        "            supergroup |            8 |         0 |          8 |       151 |         8 |   0     1     1     2     1      0      1      1       1       0\n" +
-                        "                nobody |            0 |         0 |          2 |       180 |         3 |   0     0     0     0     0      0      1      0       0       1\n" +
-                        "\n" +
-                        "By user:             3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
-                        "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
-                        "                   foo |            0 |         0 |          1 |       160 |         2 |   0     0     0     0     0      0      0      0       0       1\n" +
-                        "                    mm |            8 |         0 |          9 |       171 |         9 |   0     1     1     2     1      0      2      1       1       0\n"
-                );
+            assertThat(byteArrayOutputStream.toString())
+                    .isEqualTo("\n" +
+                            "HDFS Summary : /\n" +
+                            "----------------\n" +
+                            "\n" +
+                            "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets \n" +
+                            "         |             |              |           |             |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "----------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "       3 |           3 |            8 |         0 |         11 |       331 |        12 |   0     2     1     2     1      0      2      1       1       1\n" +
+                            "\n" +
+                            "By group:            3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
+                            "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
+                            "            supergroup |            8 |         0 |          8 |       151 |         8 |   0     1     1     2     1      0      1      1       1       0\n" +
+                            "                nobody |            0 |         0 |          2 |       180 |         3 |   0     0     0     0     0      0      1      0       0       1\n" +
+                            "\n" +
+                            "By user:             3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
+                            "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
+                            "                   foo |            0 |         0 |          1 |       160 |         2 |   0     0     0     0     0      0      0      0       0       1\n" +
+                            "                    mm |            8 |         0 |          9 |       171 |         9 |   0     1     1     2     1      0      2      1       1       0\n"
+                    );
+        }
     }
 
     @Test
@@ -56,36 +58,38 @@ public class SummaryReportCommandTest {
         summaryReportCommand.mainCommand = new HdfsFSImageTool.MainCommand();
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        summaryReportCommand.mainCommand.out = new PrintStream(byteArrayOutputStream);
-        summaryReportCommand.mainCommand.err = new PrintStream(byteArrayOutputStream);
+        try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
+            summaryReportCommand.mainCommand.out = printStream;
+            summaryReportCommand.mainCommand.err = printStream;
 
-        summaryReportCommand.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
-        summaryReportCommand.mainCommand.userNameFilter = "foo";
+            summaryReportCommand.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
+            summaryReportCommand.mainCommand.userNameFilter = "foo";
 
-        summaryReportCommand.run();
+            summaryReportCommand.run();
 
-        assertThat(byteArrayOutputStream.toString())
-                .isEqualTo("\n" +
-                        "HDFS Summary : /\n" +
-                        "----------------\n" +
-                        "\n" +
-                        "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets \n" +
-                        "         |             |              |           |             |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "----------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "       3 |           3 |            8 |         0 |         11 |       331 |        12 |   0     2     1     2     1      0      2      1       1       1\n" +
-                        "\n" +
-                        "By group:            3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
-                        "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
-                        "            supergroup |            8 |         0 |          8 |       151 |         8 |   0     1     1     2     1      0      1      1       1       0\n" +
-                        "                nobody |            0 |         0 |          2 |       180 |         3 |   0     0     0     0     0      0      1      0       0       1\n" +
-                        "\n" +
-                        "By user:             1 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
-                        "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
-                        "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                        "                   foo |            0 |         0 |          1 |       160 |         2 |   0     0     0     0     0      0      0      0       0       1\n"
-                );
+            assertThat(byteArrayOutputStream.toString())
+                    .isEqualTo("\n" +
+                            "HDFS Summary : /\n" +
+                            "----------------\n" +
+                            "\n" +
+                            "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets \n" +
+                            "         |             |              |           |             |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "----------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "       3 |           3 |            8 |         0 |         11 |       331 |        12 |   0     2     1     2     1      0      2      1       1       1\n" +
+                            "\n" +
+                            "By group:            3 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
+                            "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "                  root |            0 |         0 |          1 |         0 |         1 |   0     1     0     0     0      0      0      0       0       0\n" +
+                            "            supergroup |            8 |         0 |          8 |       151 |         8 |   0     1     1     2     1      0      1      1       1       0\n" +
+                            "                nobody |            0 |         0 |          2 |       180 |         3 |   0     0     0     0     0      0      1      0       0       1\n" +
+                            "\n" +
+                            "By user:             1 | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets\n" +
+                            "                       |              |           |            |           |           | 0 B 1 MiB 2 MiB 4 MiB 8 MiB 16 MiB 32 MiB 64 MiB 128 MiB 256 MiB\n" +
+                            "---------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "                   foo |            0 |         0 |          1 |       160 |         2 |   0     0     0     0     0      0      0      0       0       1\n"
+                    );
+        }
     }
 
     @Test

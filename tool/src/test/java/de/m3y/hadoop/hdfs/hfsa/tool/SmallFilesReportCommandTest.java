@@ -14,39 +14,39 @@ public class SmallFilesReportCommandTest {
         SmallFilesReportCommand command = new SmallFilesReportCommand();
         command.mainCommand = new HdfsFSImageTool.MainCommand();
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        command.mainCommand.out = new PrintStream(byteArrayOutputStream);
-        command.mainCommand.err = command.mainCommand.out;
-
-        command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
-        command.run();
-
-        assertThat(byteArrayOutputStream.toString())
-                .isEqualTo("\n" +
-                        "Small files report (< 2 MiB)\n" +
-                        "\n" +
-                        "Overall small files : 3\n" +
-                        "\n" +
-                        "#Small files  | Path (top 10) \n" +
-                        "------------------------------\n" +
-                        "            3 | /\n" +
-                        "            2 | /test3\n" +
-                        "            1 | /test3/foo\n" +
-                        "\n" +
-                        "Username | #Small files | %\n" +
-                        "------------------------------------\n" +
-                        "mm       |            2 | 66.7%\n" +
-                        "root     |            1 | 33.3%\n" +
-                        "\n" +
-                        "Username | Small files hotspots (top 10 count/path)\n" +
-                        "---------------------------------------------------\n" +
-                        "mm       |            2 | /\n" +
-                        "         |            1 | /test3\n" +
-                        "---------------------------------------------------\n" +
-                        "root     |            1 | /\n" +
-                        "         |            1 | /test3\n" +
-                        "         |            1 | /test3/foo\n" +
-                        "---------------------------------------------------\n"
-                );
+        try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
+            command.mainCommand.out = printStream;
+            command.mainCommand.err = command.mainCommand.out;
+            command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
+            command.run();
+            assertThat(byteArrayOutputStream.toString())
+                    .isEqualTo("\n" +
+                            "Small files report (< 2 MiB)\n" +
+                            "\n" +
+                            "Overall small files : 3\n" +
+                            "\n" +
+                            "#Small files  | Path (top 10) \n" +
+                            "------------------------------\n" +
+                            "            3 | /\n" +
+                            "            2 | /test3\n" +
+                            "            1 | /test3/foo\n" +
+                            "\n" +
+                            "Username | #Small files | %\n" +
+                            "------------------------------------\n" +
+                            "mm       |            2 | 66.7%\n" +
+                            "root     |            1 | 33.3%\n" +
+                            "\n" +
+                            "Username | Small files hotspots (top 10 count/path)\n" +
+                            "---------------------------------------------------\n" +
+                            "mm       |            2 | /\n" +
+                            "         |            1 | /test3\n" +
+                            "---------------------------------------------------\n" +
+                            "root     |            1 | /\n" +
+                            "         |            1 | /test3\n" +
+                            "         |            1 | /test3/foo\n" +
+                            "---------------------------------------------------\n"
+                    );
+        }
     }
 
     @Test
@@ -54,37 +54,38 @@ public class SmallFilesReportCommandTest {
         SmallFilesReportCommand command = new SmallFilesReportCommand();
         command.mainCommand = new HdfsFSImageTool.MainCommand();
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        command.mainCommand.out = new PrintStream(byteArrayOutputStream);
-        command.mainCommand.err = command.mainCommand.out;
+        try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
+            command.mainCommand.out = printStream;
+            command.mainCommand.err = command.mainCommand.out;
 
-        command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
-        command.mainCommand.userNameFilter = "mm";
+            command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
+            command.mainCommand.userNameFilter = "mm";
 
-        command.run();
+            command.run();
 
-        assertThat(byteArrayOutputStream.toString())
-                .isEqualTo("\n" +
-                        "Small files report (< 2 MiB)\n" +
-                        "\n" +
-                        "Overall small files         : 3\n" +
-                        "User (filtered) small files : 2\n" +
-                        "\n" +
-                        "#Small files  | Path (top 10) \n" +
-                        "------------------------------\n" +
-                        "            3 | /\n" +
-                        "            2 | /test3\n" +
-                        "            1 | /test3/foo\n" +
-                        "\n" +
-                        "Username | #Small files | %\n" +
-                        "------------------------------------\n" +
-                        "mm       |            2 | 66.7%\n" +
-                        "\n" +
-                        "Username | Small files hotspots (top 10 count/path)\n" +
-                        "---------------------------------------------------\n" +
-                        "mm       |            2 | /\n" +
-                        "         |            1 | /test3\n" +
-                        "---------------------------------------------------\n"
-                );
+            assertThat(byteArrayOutputStream.toString())
+                    .isEqualTo("\n" +
+                            "Small files report (< 2 MiB)\n" +
+                            "\n" +
+                            "Overall small files         : 3\n" +
+                            "User (filtered) small files : 2\n" +
+                            "\n" +
+                            "#Small files  | Path (top 10) \n" +
+                            "------------------------------\n" +
+                            "            3 | /\n" +
+                            "            2 | /test3\n" +
+                            "            1 | /test3/foo\n" +
+                            "\n" +
+                            "Username | #Small files | %\n" +
+                            "------------------------------------\n" +
+                            "mm       |            2 | 66.7%\n" +
+                            "\n" +
+                            "Username | Small files hotspots (top 10 count/path)\n" +
+                            "---------------------------------------------------\n" +
+                            "mm       |            2 | /\n" +
+                            "         |            1 | /test3\n" +
+                            "---------------------------------------------------\n"
+                    );
+        }
     }
-
 }

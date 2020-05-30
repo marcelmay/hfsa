@@ -3,6 +3,7 @@ package de.m3y.hadoop.hdfs.hfsa.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -41,7 +42,7 @@ public class FsImageGenerator {
          */
         LOG.info("Max depth = {}, max width = {}, files-factor = {}",
                 maxDirDepth, maxDirWidth, filesPerDirectoryFactor);
-        int eDirs = ABC.length() * (1 - Double.valueOf(Math.rint(Math.pow(maxDirWidth, maxDirDepth))).intValue()) / (1 - maxDirWidth);
+        int eDirs = ABC.length() * (1 - (int)(Math.rint(Math.pow(maxDirWidth, maxDirDepth)))) / (1 - maxDirWidth);
         LOG.info("Generates {} dirs (depth up to {}) and {} files",
                 eDirs, maxDirDepth, eDirs * ABC.length() * filesPerDirectoryFactor);
 
@@ -90,7 +91,7 @@ public class FsImageGenerator {
                 final File highestFsImageName = fsImage.getStorage().getHighestFsImageName();
                 File newFsImage = new File("fsimage.img");
                 if (newFsImage.exists()) {
-                    newFsImage.delete();
+                    Files.delete(newFsImage.toPath());
                 }
                 highestFsImageName.renameTo(newFsImage);
 

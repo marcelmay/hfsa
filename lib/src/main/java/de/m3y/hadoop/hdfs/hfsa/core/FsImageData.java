@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
@@ -79,8 +78,9 @@ public class FsImageData {
      * @throws IOException on error.
      */
     public FsImageProto.INodeSection.INode getINodeFromPath(String path) throws IOException {
-        Preconditions.checkArgument(path.startsWith(ROOT_PATH),
-                "Expected path <" + path + "> to start with " + ROOT_PATH);
+        if (!path.startsWith(ROOT_PATH)) {
+            throw new IllegalArgumentException("Expected path <" + path + "> to start with " + PATH_SEPARATOR);
+        }
         String normalizedPath = normalizePath(path);
         long id = INodeId.ROOT_INODE_ID;
         // Root node?
@@ -88,22 +88,13 @@ public class FsImageData {
             return inodes.getInode(id);
         }
 
-        // Search path
+        // Walk the hierarchy for each path segment
+        int startIdx = 1;
+        int endIdx = startIdx;
         FsImageProto.INodeSection.INode node = null;
-        for (int offset = 0, next; offset < normalizedPath.length(); offset = next) {
-            next = normalizedPath.indexOf(PATH_SEPARATOR, offset + 1);
-            if (next == -1) {
-                next = normalizedPath.length();
-            }
-            if (offset + 1 > next) {
-                break;
-            }
-
-            final String component = normalizedPath.substring(offset + 1, next);
-
-            if (component.isEmpty()) {
-                continue;
-            }
+        while (endIdx > 0) {
+            endIdx = normalizedPath.indexOf(PATH_SEPARATOR, startIdx);
+            String pathSegment = endIdx >= 0 ? normalizedPath.substring(startIdx, endIdx) /* dir */ : normalizedPath.substring(startIdx) /* file */;
 
             final long[] children = dirMap.get(id);
             if (children.length == 0) {
@@ -113,7 +104,7 @@ public class FsImageData {
             boolean found = false;
             for (long cid : children) {
                 node = inodes.getInode(cid);
-                if (component.equals(node.getName().toStringUtf8())) {
+                if (pathSegment.equals(node.getName().toStringUtf8())) {
                     found = true;
                     id = node.getId();
                     break;
@@ -122,7 +113,10 @@ public class FsImageData {
             if (!found) {
                 throw new FileNotFoundException(path);
             }
+
+            startIdx = endIdx + 1;
         }
+
         return node;
     }
 
@@ -295,9 +289,9 @@ public class FsImageData {
     }
 
     /**
-     * Gets the  inode IDs of the children, or empty array.
+     * Gets the inode IDs of the children, or empty array.
      *
-     * @param pathNodeId
+     * @param pathNodeId the node id of parent directory
      * @return array of child node IDs or empty array.
      */
     public long[] getChildINodeIds(long pathNodeId) {
@@ -306,7 +300,18 @@ public class FsImageData {
 
     private static final Pattern DOUBLE_SLASH = Pattern.compile("//+");
 
+    /**
+     * Strips [/]+ or trailing slashes.
+     *
+     * @param path the path to normalize
+     * @return the normalized path
+     */
     static String normalizePath(String path) {
-        return DOUBLE_SLASH.matcher(path).replaceAll("/");
+        String pathWithoutDoubleSlashes = DOUBLE_SLASH.matcher(path).replaceAll("/");
+        final int length = pathWithoutDoubleSlashes.length();
+        if(length >1 && pathWithoutDoubleSlashes.endsWith("/")) {
+            return pathWithoutDoubleSlashes.substring(0, length -1);
+        }
+        return  pathWithoutDoubleSlashes;
     }
 }
