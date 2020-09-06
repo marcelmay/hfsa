@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.primitives.ImmutableLongArray;
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.InvalidProtocolBufferException;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import org.apache.hadoop.hdfs.server.namenode.FSImageFormatProtobuf.SectionName;
@@ -39,6 +37,9 @@ import org.apache.hadoop.hdfs.server.namenode.FsImageProto.FileSummary;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto.INodeSection.INode;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.thirdparty.protobuf.CodedInputStream;
+import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
+import org.apache.hadoop.thirdparty.protobuf.Parser;
 import org.apache.hadoop.util.LimitInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +84,7 @@ public class FsImageLoader {
          * @return the inode
          * @throws InvalidProtocolBufferException if protobuf deserialization fails
          */
-        INode getInode(long inodeId) throws InvalidProtocolBufferException;
+        INode getInode(long inodeId) throws IOException;
 
         /**
          * Gets the number of inodes in this repository.
@@ -101,6 +102,7 @@ public class FsImageLoader {
      * Implementation of INode repository using array of bytes.
      */
     static class PrimitiveArrayINodesRepository implements INodesRepository {
+        private static final Parser<INode> INODE_PARSER = INode.parser();
         private static final Comparator<byte[]> INODE_BYTES_COMPARATOR =
                 Comparator.comparingLong(PrimitiveArrayINodesRepository::extractNodeId);
         // byte representation of inodes, sorted by id
@@ -112,7 +114,7 @@ public class FsImageLoader {
         PrimitiveArrayINodesRepository(byte[][] buf, long[] inodeOffsets) throws InvalidProtocolBufferException {
             inodes = buf;
             this.inodesIdxToIdCache = inodeOffsets;
-            rootInode = INode.parseFrom(getInodeAsBytes(INodeId.ROOT_INODE_ID));
+            rootInode = INODE_PARSER.parseFrom(getInodeAsBytes(INodeId.ROOT_INODE_ID));
         }
 
         static class Builder implements INodesRepositoryBuilder {
@@ -181,11 +183,11 @@ public class FsImageLoader {
         }
 
         @Override
-        public INode getInode(long inodeId) throws InvalidProtocolBufferException {
+        public INode getInode(long inodeId) throws IOException {
             if (INodeId.ROOT_INODE_ID == inodeId) {
                 return rootInode;
             }
-            return INode.parseFrom(getInodeAsBytes(inodeId));
+            return INODE_PARSER.parseFrom(getInodeAsBytes(inodeId));
         }
 
         @Override

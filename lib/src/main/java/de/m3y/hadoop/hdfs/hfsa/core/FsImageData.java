@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import org.apache.hadoop.fs.permission.AclEntry;
@@ -66,7 +65,7 @@ public class FsImageData {
         }
     }
 
-    public FsImageProto.INodeSection.INode getInode(long id) throws InvalidProtocolBufferException {
+    public FsImageProto.INodeSection.INode getInode(long id) throws IOException {
         return inodes.getInode(id);
     }
 
