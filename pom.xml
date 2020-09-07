@@ -347,12 +347,6 @@
     </build>
     <profiles>
         <profile>
-            <id>generator</id>
-            <modules>
-                <module>fsimage-generator</module>
-            </modules>
-        </profile>
-        <profile>
             <!--
               Release profile, activating ossrh specific release settings.
               See http://central.sonatype.org/pages/apache-maven.html
