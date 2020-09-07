@@ -15,12 +15,12 @@ public class HdfsFSImageToolTest {
         HdfsFSImageTool.out = new PrintStream(byteArrayOutputStream);
         HdfsFSImageTool.err = HdfsFSImageTool.out;
 
-        HdfsFSImageTool.main(new String[]{"-V"});
+        HdfsFSImageTool.run(new String[]{"-V"});
 
         Pattern pattern = Pattern.compile("Version 1\\..*\n" +
-                                "Build timestamp 20.*\n" +
-                                "SCM Version .*\n" +
-                                "SCM Branch .*\n");
+                "Build timestamp 20.*\n" +
+                "SCM Version .*\n" +
+                "SCM Branch .*\n");
         assertThat(byteArrayOutputStream.toString())
                 .matches(pattern);
     }
@@ -31,12 +31,12 @@ public class HdfsFSImageToolTest {
         HdfsFSImageTool.out = new PrintStream(byteArrayOutputStream);
         HdfsFSImageTool.err = HdfsFSImageTool.out;
 
-        HdfsFSImageTool.main(new String[]{"-h"});
+        HdfsFSImageTool.run(new String[]{"-h"});
 
         assertThat(byteArrayOutputStream.toString())
                 .isEqualTo("Analyze Hadoop FSImage file for user/group reports\n" +
-                        "Usage: hfsa-tool [-hV] [-v]... [-fun=<userNameFilter>] [-p=<dirs>[,\n" +
-                        "                 <dirs>...]]... FILE [COMMAND]\n" +
+                        "Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-p=<dirs>[,<dirs>...]]... FILE\n" +
+                        "                 [COMMAND]\n" +
                         "      FILE        FSImage file to process.\n" +
                         "      -fun, --filter-by-user=<userNameFilter>\n" +
                         "                  Filter user name by <regexp>.\n" +

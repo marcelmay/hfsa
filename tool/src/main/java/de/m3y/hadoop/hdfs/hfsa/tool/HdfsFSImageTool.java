@@ -2,14 +2,13 @@ package de.m3y.hadoop.hdfs.hfsa.tool;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.List;
+import java.io.PrintWriter;
 
 import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
+import picocli.CommandLine.*;
 
 import static org.apache.log4j.Logger.getRootLogger;
 
@@ -37,12 +36,12 @@ public class HdfsFSImageTool {
                 description = "Directory path(s) to start traversing (default: ${DEFAULT-VALUE}).")
         String[] dirs = new String[]{"/"};
 
-        @CommandLine.Option(names = {"-fun", "--filter-by-user"},
+        @Option(names = {"-fun", "--filter-by-user"},
                 description = "Filter user name by <regexp>.")
         String userNameFilter;
     }
 
-    @CommandLine.Command(name = "hfsa-tool",
+    @Command(name = "hfsa-tool",
             header = "Analyze Hadoop FSImage file for user/group reports",
             footer = "Runs @|bold summary|@ command by default.",
             mixinStandardHelpOptions = true,
@@ -66,44 +65,32 @@ public class HdfsFSImageTool {
     static PrintStream out = System.out; // NOSONAR
     static PrintStream err = System.err; // NOSONAR
 
-    public static void main(String[] args) {
-        final CommandLine.Help.Ansi ansi = CommandLine.Help.Ansi.AUTO;
-        final CommandLine.AbstractParseResultHandler<List<Object>> handler =
-                new CommandLine.RunLast().useOut(out).useAnsi(ansi);
-        final CommandLine.DefaultExceptionHandler<List<Object>> exceptionHandler =
-                new CommandLine.DefaultExceptionHandler<List<Object>>() {
-                    @Override
-                    public List<Object> handleExecutionException(CommandLine.ExecutionException ex,
-                                                                 CommandLine.ParseResult parseResult) {
-                        if (getRootLogger().isInfoEnabled()) {
-                            // Includes stack trace. Only show with verbosity enabled.
-                            return super.handleExecutionException(ex, parseResult);
-                        }
-                        err.println("Error: " + ex.getCause().getMessage());
-                        err.println("Exiting - use option [-v] for more verbose details.");
-                        return returnResultOrExit(null);
-                    }
-                }.useErr(err).useAnsi(ansi);
+    protected static int run(String[] args) {
+        final IExecutionExceptionHandler exceptionHandler = (ex, commandLine, parseResult) -> {
+            commandLine.getErr().println(commandLine.getColorScheme().errorText(ex.getMessage()));
+            if (getRootLogger().isInfoEnabled()) {
+                commandLine.getErr().println("Exiting - use option [-v] for more verbose details.");
+            }
+            if (getRootLogger().isDebugEnabled()) {
+                commandLine.getErr().println(commandLine.getColorScheme().errorText(ex.getMessage()));
+            }
+            return commandLine.getExitCodeExceptionMapper() != null
+                    ? commandLine.getExitCodeExceptionMapper().getExitCode(ex)
+                    : commandLine.getCommandSpec().exitCodeOnExecutionException();
+        };
 
         CommandLine cmd = new CommandLine(new MainCommand());
-        CommandLine.ParseResult parseResult = null;
-        final CommandLine.Model.OptionSpec verbose;
-        try {
-            parseResult = cmd.parseArgs(args);
-            verbose = parseResult.matchedOption("v");
-            if (null != verbose) {
-                handleVerboseMode(verbose);
-            }
-
-            handler.handleParseResult(parseResult);
-        } catch (CommandLine.ParameterException ex) {
-            exceptionHandler.handleParseException(ex, args);
-        } catch (CommandLine.ExecutionException ex) {
-            exceptionHandler.handleExecutionException(ex, parseResult);
-        }
+        cmd.setColorScheme(Help.defaultColorScheme(Help.Ansi.AUTO));
+        cmd.setOut(new PrintWriter(out));
+        cmd.setExecutionExceptionHandler(exceptionHandler);
+        cmd.setExecutionStrategy(new RunLast());
+        return cmd.execute(args);
+    }
+    public static void main(String[] args) {
+        System.exit(run(args));
     }
 
-    private static void handleVerboseMode(CommandLine.Model.OptionSpec verbose) {
+    private static void handleVerboseMode(Model.OptionSpec verbose) {
         final org.apache.log4j.Logger rootLogger = getRootLogger();
         if (null == verbose) {
             rootLogger.setLevel(Level.WARN);

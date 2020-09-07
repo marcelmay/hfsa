@@ -164,7 +164,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 FormatUtil.numberOfDigits(overallStats.fileSizeBuckets.get()));
         final String bucketFormatValue = FormatUtil.formatForLengths(maxLength, "d");
         final String bucketFormatHeader = FormatUtil.formatForLengths(maxLength, "s");
-        final String bucketHeader = String.format(bucketFormatHeader, bucketUnits);
+        final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
 
         out.println(
                 "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
@@ -173,52 +173,52 @@ class SummaryReportCommand extends AbstractReportCommand {
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
 
-        out.println(String.format("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s",
+        out.printf("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s%n",
                 report.groupStats.size(), report.userStats.size(),
                 overallStats.sumDirectories.longValue(), overallStats.sumSymLinks.longValue(),
                 overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
                 overallStats.sumBlocks,
                 String.format(bucketFormatValue,
                         FormatUtil.boxAndPadWithZeros(maxLength.length, overallStats.fileSizeBuckets.get()))
-        ));
+        );
         out.println();
 
         // Groups
-        out.println(String.format(
-                "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
-                report.groupStats.size()));
+        out.printf(
+                "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets%n",
+                report.groupStats.size());
         header2ndLine = "     " +
                 "                  |              |           |            |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (GroupStats stat : sortStats(report.groupStats.values(), sort.getComparator())) {
-            out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %s%n",
                     stat.groupName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
                             FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
-            ));
+            );
         }
 
         // Users
         out.println();
         final List<UserStats> userStats = filterByUserName(report.userStats.values(), mainCommand.userNameFilter);
-        out.println(String.format(
-                "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets",
-                userStats.size()));
+        out.printf(
+                "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets%n",
+                userStats.size());
         header2ndLine = "     " +
                 "                  |              |           |            |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (UserStats stat : sortStats(userStats, sort.getComparator())) {
-            out.println(String.format("%22s |   %10d | %9d | %10d | %9d | %9d | %s",
+            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %s%n",
                     stat.userName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
                     stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
                             FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
-            ));
+            );
         }
     }
 
