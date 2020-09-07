@@ -4,10 +4,10 @@ package de.m3y.hadoop.hdfs.hfsa.core;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
@@ -66,13 +66,6 @@ public class FsImageLoaderTest {
     private static final Logger LOG = LoggerFactory.getLogger(FsImageLoaderTest.class);
     private FsImageData fsImageData;
 
-    private final Set<String> groupNames = new HashSet<>();
-    private final Set<String> userNames = new HashSet<>();
-    private int sumFiles;
-    private int sumDirs;
-    private int sumSymLinks;
-    private long sumSize;
-
     @Before
     public void setUp() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small_h3_2.img", "r")) {
@@ -88,6 +81,95 @@ public class FsImageLoaderTest {
         }
     }
 
+    static class CountingVisitor implements FsVisitor {
+        final FsImageData fsImageData;
+        final AtomicLong numFiles = new AtomicLong(0);
+        final AtomicLong sumFileSize = new AtomicLong(0);
+        final AtomicLong numDirs = new AtomicLong(0);
+        final AtomicLong numSymLinks = new AtomicLong(0);
+        final Map<String,String> users = new ConcurrentHashMap<>();
+        final Map<String,String> groups = new ConcurrentHashMap<>();
+
+        CountingVisitor(FsImageData fsImageData) {
+            this.fsImageData = fsImageData;
+        }
+
+        @Override
+        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+            numFiles.getAndIncrement();
+            final FsImageProto.INodeSection.INodeFile file = inode.getFile();
+            sumFileSize.getAndAdd(FsUtil.getFileSize(file));
+            PermissionStatus p = fsImageData.getPermissionStatus(file.getPermission());
+            users.put(p.getGroupName(),"");
+            groups.put(p.getUserName(),"");
+        }
+
+        @Override
+        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+            numDirs.getAndIncrement();
+            PermissionStatus p = fsImageData.getPermissionStatus(inode.getDirectory().getPermission());
+            users.put(p.getGroupName(),"");
+            groups.put(p.getUserName(),"");
+        }
+
+        @Override
+        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+            numSymLinks.getAndIncrement();
+            PermissionStatus p = fsImageData.getPermissionStatus(inode.getSymlink().getPermission());
+            users.put(p.getGroupName(),"");
+            groups.put(p.getUserName(),"");
+        }
+    }
+
+    static class ExtendedCountingVisitor extends CountingVisitor {
+        final Map<String,String> paths = new ConcurrentHashMap<>();
+        final Map<String,String> files = new ConcurrentHashMap<>();
+
+        ExtendedCountingVisitor(FsImageData fsImageData) {
+            super(fsImageData);
+        }
+
+        @Override
+        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+            super.onFile(inode, path);
+
+            final String fileName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
+                    inode.getName().toStringUtf8();
+            LOG.debug(fileName);
+            files.put(fileName,"");
+            paths.put(path,"");
+        }
+
+        @Override
+        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+            super.onDirectory(inode, path);
+            final String dirName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
+                    inode.getName().toStringUtf8();
+            paths.put(dirName,"");
+            LOG.debug(dirName);
+        }
+
+        @Override
+        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+            super.onDirectory(inode, path);
+            paths.put(path,"");
+        }
+    }
+
+    @Test
+    public void testLoadHadoop33xCompressedFsImage() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile("src/test/resources/fsimage_d800_f210k_compressed.img", "r")) {
+            final FsImageData hadoopV3xCompressedImage = new FsImageLoader.Builder().parallel().build().load(file);
+            final CountingVisitor visitor = new CountingVisitor(hadoopV3xCompressedImage);
+            new FsVisitor.Builder().parallel().visit(hadoopV3xCompressedImage, visitor);
+            assertThat(visitor.groups.size()).isEqualTo(1);
+            assertThat(visitor.users.size()).isEqualTo(1);
+            assertThat(visitor.numFiles.get()).isEqualTo(209560L);
+            assertThat(visitor.numDirs.get()).isEqualTo(807L);
+            assertThat(visitor.numSymLinks.get()).isEqualTo(0L);
+        }
+    }
+
     @Test
     public void testLoadAndVisitParallel() throws IOException {
         loadAndVisit(fsImageData, new FsVisitor.Builder().parallel());
@@ -99,58 +181,21 @@ public class FsImageLoaderTest {
     }
 
     private void loadAndVisit(FsImageData fsImageData, FsVisitor.Builder builder) throws IOException {
-        Set<String> paths = new HashSet<>();
-        Set<String> files = new HashSet<>();
-
-        final FsVisitor visitor = new FsVisitor() {
-            @Override
-            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                final String fileName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
-                        inode.getName().toStringUtf8();
-                LOG.debug(fileName);
-                files.add(fileName);
-                paths.add(path);
-                FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
-                groupNames.add(p.getGroupName());
-                userNames.add(p.getUserName());
-                sumFiles++;
-                sumSize += FsUtil.getFileSize(f);
-            }
-
-            @Override
-            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                final String dirName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
-                        inode.getName().toStringUtf8();
-                paths.add(dirName);
-                LOG.debug(dirName);
-                FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                PermissionStatus p = fsImageData.getPermissionStatus(d.getPermission());
-                groupNames.add(p.getGroupName());
-                userNames.add(p.getUserName());
-                sumDirs++;
-            }
-
-            @Override
-            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-                paths.add(path);
-                sumSymLinks++;
-            }
-        };
+        final ExtendedCountingVisitor visitor = new ExtendedCountingVisitor(fsImageData);
         builder.visit(fsImageData, visitor);
 
-        assertThat(userNames.size()).isEqualTo(3);
-        assertThat(groupNames.size()).isEqualTo(3);
-        assertThat(sumDirs).isEqualTo(14);
-        assertThat(sumFiles).isEqualTo(16);
-        assertThat(sumSymLinks).isEqualTo(0);
-        assertThat(sumSize).isEqualTo(356417536L);
+        assertThat(visitor.users.size()).isEqualTo(3);
+        assertThat(visitor.groups.size()).isEqualTo(3);
+        assertThat(visitor.numDirs.get()).isEqualTo(14);
+        assertThat(visitor.numFiles.get()).isEqualTo(16);
+        assertThat(visitor.numSymLinks.get()).isEqualTo(0);
+        assertThat(visitor.sumFileSize.get()).isEqualTo(356417536L);
 
         String[] expectedPaths = new String[]{
                 "/", "/test1", "/test2", "/test3", "/test3/foo", "/test3/foo/bar", "/user", "/user/mm",
                 "/datalake", "/datalake/asset1", "/datalake/asset2",
                 "/datalake/asset3", "/datalake/asset3/subasset1", "/datalake/asset3/subasset2"};
-        assertThat(paths).containsExactlyInAnyOrder(expectedPaths);
+        assertThat(visitor.paths.keySet()).containsExactlyInAnyOrder(expectedPaths);
 
         String[] expectedFiles = new String[]{
                 "/test_2KiB.img",
@@ -170,7 +215,7 @@ public class FsImageLoaderTest {
                 "/datalake/asset3/subasset2/test_2MiB.img",
                 "/datalake/asset3/test_2MiB.img"
         };
-        assertThat(files).containsExactlyInAnyOrder(expectedFiles);
+        assertThat(visitor.files.keySet()).containsExactlyInAnyOrder(expectedFiles);
 
         assertThat(fsImageData.getINodeFromPath("/test3/foo/bar/test_40MiB.img").getFile().getReplication())
                 .isEqualTo(1);
@@ -193,50 +238,20 @@ public class FsImageLoaderTest {
 
     @Test
     public void testLoadAndVisitWithPath() throws IOException {
-        Set<String> paths = new HashSet<>();
-        Set<String> files = new HashSet<>();
+        final ExtendedCountingVisitor visitor = new ExtendedCountingVisitor(fsImageData);
 
-        new FsVisitor.Builder().visit(fsImageData, new FsVisitor() {
-            @Override
-            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                files.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
-                paths.add(path);
-                FsImageProto.INodeSection.INodeFile f = inode.getFile();
+        new FsVisitor.Builder().visit(fsImageData, visitor , "/test3");
 
-                PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
-                groupNames.add(p.getGroupName());
-                userNames.add(p.getUserName());
-                sumFiles++;
-                sumSize += FsUtil.getFileSize(f);
-            }
-
-            @Override
-            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                paths.add(("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8());
-                FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                PermissionStatus p = fsImageData.getPermissionStatus(d.getPermission());
-                groupNames.add(p.getGroupName());
-                userNames.add(p.getUserName());
-                sumDirs++;
-            }
-
-            @Override
-            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-                paths.add(path);
-                sumSymLinks++;
-            }
-        }, "/test3");
-
-        assertThat(userNames.size()).isEqualTo(3);
-        assertThat(groupNames.size()).isEqualTo(3);
-        assertThat(sumDirs).isEqualTo(3);
-        assertThat(sumFiles).isEqualTo(10);
-        assertThat(sumSymLinks).isEqualTo(0);
-        assertThat(sumSize).isEqualTo(348025856L);
+        assertThat(visitor.users.size()).isEqualTo(3);
+        assertThat(visitor.groups.size()).isEqualTo(3);
+        assertThat(visitor.numDirs.get()).isEqualTo(3);
+        assertThat(visitor.numFiles.get()).isEqualTo(10);
+        assertThat(visitor.numSymLinks.get()).isEqualTo(0);
+        assertThat(visitor.sumFileSize.get()).isEqualTo(348025856L);
 
         String[] expectedPaths = new String[]{
                 "/test3", "/test3/foo", "/test3/foo/bar"};
-        assertThat(paths).containsExactlyInAnyOrder(expectedPaths);
+        assertThat(visitor.paths.keySet()).containsExactlyInAnyOrder(expectedPaths);
 
         String[] expectedFiles = new String[]{
                 "/test3/test.img",
@@ -250,7 +265,7 @@ public class FsImageLoaderTest {
                 "/test3/foo/bar/test_5MiB.img",
                 "/test3/foo/bar/test_80MiB.img"
         };
-        assertThat(files).containsExactlyInAnyOrder(expectedFiles);
+        assertThat(visitor.files.keySet()).containsExactlyInAnyOrder(expectedFiles);
     }
 
     @Test

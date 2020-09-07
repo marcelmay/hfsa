@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import com.google.common.primitives.ImmutableLongArray;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.namenode.FSImageFormatProtobuf.SectionName;
 import org.apache.hadoop.hdfs.server.namenode.FSImageUtil;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
@@ -258,13 +259,14 @@ public class FsImageLoader {
             final int bufferSize = Math.max(
                     (int) Math.min(section.getLength(), 1024L * 1024L /* 1024KiB */),
                     8 * 1024 /* 8KiB */);
-            InputStream is = FSImageUtil.wrapInputStreamForCompression(null, codec,
+            InputStream is = FSImageUtil.wrapInputStreamForCompression(new Configuration(), codec,
                     new FastBufferedInputStream(new LimitInputStream(fin, section.getLength()), bufferSize));
 
             final T apply = f.apply(is, section.getLength());
             LOG.debug("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
             return apply;
-        } catch (IOException ex) {
+        } catch (Throwable ex) { // Can be IOException or NoClassDefFoundError
+            ex.getCause().printStackTrace();
             throw new IllegalStateException("Can not load fsimage section " + section.getName(), ex);
         }
     }
