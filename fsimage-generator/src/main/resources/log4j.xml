@@ -26,11 +26,11 @@
         <level value="WARN"/>
     </logger>
     <logger name="org.eclipse">
-        <level value="WARN"/>
+        <level value="ERROR"/>
     </logger>
 
     <root>
-        <priority value ="info" />
+        <priority value ="INFO" />
         <appender-ref ref="console" />
     </root>
 

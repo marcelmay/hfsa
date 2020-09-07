@@ -11,7 +11,7 @@ mvn package
 
 ### Running
 ```bash
-java -jar target/hfsa-fsimage-generator-1.2.1-SNAPSHOT.jar 
+java [-Ddfs.image.compress=true] -jar target/hfsa-fsimage-generator-VERSION.jar
 ```
 Example output:
 ```

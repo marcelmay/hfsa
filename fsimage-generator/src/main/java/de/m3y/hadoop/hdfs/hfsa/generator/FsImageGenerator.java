@@ -9,6 +9,7 @@ import java.util.Deque;
 
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -31,6 +32,8 @@ public class FsImageGenerator {
         final int maxDirWidth = Math.min(2, ABC.length());
         /* "a...z".length * factor = number of files per directory generated */
         final int filesPerDirectoryFactor = 10;
+        final boolean enableDefaultCompression = Boolean.valueOf(System.getProperty(
+                DFSConfigKeys.DFS_IMAGE_COMPRESS_KEY, Boolean.toString(DFSConfigKeys.DFS_IMAGE_COMPRESS_DEFAULT)));
 
         /*
          * #dirs = (1-maxWidth**maxDepth)/(1-maxWidth) * 26
@@ -47,6 +50,9 @@ public class FsImageGenerator {
                 eDirs, maxDirDepth, eDirs * ABC.length() * filesPerDirectoryFactor);
 
         HdfsConfiguration conf = new HdfsConfiguration();
+        LOG.info("Enabling compression: {}", enableDefaultCompression);
+        conf.setBoolean(DFSConfigKeys.DFS_IMAGE_COMPRESS_KEY, enableDefaultCompression);
+
         try (MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).build()) {
             long dirCounter = 0;
             long fileCounter = 0;
