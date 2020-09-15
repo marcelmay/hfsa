@@ -266,7 +266,6 @@ public class FsImageLoader {
             LOG.debug("Loaded fsimage section {} in {}ms", section.getName(), System.currentTimeMillis() - startTime);
             return apply;
         } catch (Throwable ex) { // Can be IOException or NoClassDefFoundError
-            ex.getCause().printStackTrace();
             throw new IllegalStateException("Can not load fsimage section " + section.getName(), ex);
         }
     }
