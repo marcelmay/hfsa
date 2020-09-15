@@ -4,11 +4,16 @@ package de.m3y.hadoop.hdfs.hfsa.generator;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.DecimalFormat;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.EnumSet;
 
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsCreateModes;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
@@ -18,12 +23,15 @@ import org.apache.hadoop.hdfs.server.namenode.FSImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
+
 /**
  * Generates an FSImage for testing.
  */
 public class FsImageGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(FsImageGenerator.class);
     static final String ABC = "abcdefghijklmnopqrstuvwxyz";
+    private static final DecimalFormat DF = new DecimalFormat("0.00");
 
     public static void main(String[] args) throws IOException {
         /* How deep aka directory levels  */
@@ -45,29 +53,44 @@ public class FsImageGenerator {
          */
         LOG.info("Max depth = {}, max width = {}, files-factor = {}",
                 maxDirDepth, maxDirWidth, filesPerDirectoryFactor);
-        int eDirs = ABC.length() * (1 - (int)(Math.rint(Math.pow(maxDirWidth, maxDirDepth)))) / (1 - maxDirWidth);
+        int eDirs = ABC.length() * (1 - (int) (Math.rint(Math.pow(maxDirWidth, maxDirDepth)))) / (1 - maxDirWidth);
+        final int numFiles = eDirs * ABC.length() * filesPerDirectoryFactor;
         LOG.info("Generates {} dirs (depth up to {}) and {} files",
-                eDirs, maxDirDepth, eDirs * ABC.length() * filesPerDirectoryFactor);
+                eDirs, maxDirDepth, numFiles);
 
         HdfsConfiguration conf = new HdfsConfiguration();
         LOG.info("Enabling compression: {}", enableDefaultCompression);
         conf.setBoolean(DFSConfigKeys.DFS_IMAGE_COMPRESS_KEY, enableDefaultCompression);
+
 
         try (MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).build()) {
             long dirCounter = 0;
             long fileCounter = 0;
 
             try (DistributedFileSystem dfs = cluster.getFileSystem()) {
+                final int fileBufferSize = dfs.getConf().getInt(IO_FILE_BUFFER_SIZE_KEY, 1024);
+                final short fileReplication = dfs.getDefaultReplication();
+                final long fileBlockSize = dfs.getDefaultBlockSize();
+                final FsPermission fsPermission = FsCreateModes.applyUMask(FsPermission.getFileDefault(),
+                        FsPermission.getUMask(dfs.getConf()));
+                final EnumSet<CreateFlag> createFlags = EnumSet.of(CreateFlag.CREATE);
+
+
                 Deque<String> stack = new ArrayDeque<>();
                 ABC.chars().forEach(c -> stack.push("/" + (char) c));
 
+                long timestamp = System.currentTimeMillis();
                 while (!stack.isEmpty()) {
                     String pathName = stack.pop();
                     final Path path = new Path(pathName);
 
                     if (dirCounter > 0 && dirCounter % 100 == 0) {
                         LOG.debug("Current path: {}", path);
-                        LOG.info("Progress: {} directories and {} files...", dirCounter, fileCounter);
+                        long ts2 = System.currentTimeMillis();
+                        final double filesCompletionRate = (double) fileCounter / (double) numFiles * 100.0;
+                        LOG.info("Progress: {} directories and {} files ({}%) ... [{}ms]", dirCounter, fileCounter,
+                                DF.format(filesCompletionRate), (ts2 - timestamp));
+                        timestamp = ts2;
                     }
 
                     // Create directory
@@ -77,7 +100,9 @@ public class FsImageGenerator {
                     // Fill directory with some files
                     for (int i = 0; i < ABC.length(); i++) {
                         for (int c = 0; c < filesPerDirectoryFactor; c++) {
-                            dfs.createNewFile(new Path(path, "" + ABC.charAt(i) + "_" + c));
+                            final Path filePath = new Path(path, "" + ABC.charAt(i) + "_" + c);
+                            dfs.create(filePath, fsPermission, createFlags, fileBufferSize, fileReplication,
+                                    fileBlockSize, null, null).close();
                             fileCounter++;
                         }
                     }
