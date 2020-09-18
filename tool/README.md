@@ -30,12 +30,12 @@ Usage: hfsa-tool [-hV] [-v]... [-fun=<userNameFilter>] [-p=<dirs>[,
                   Directory path(s) to start traversing (default: [/]).
                     Default: [/]
   -v              Turns on verbose output. Use `-vv` for debug output.
-                    Default: []
   -V, --version   Print version information and exit.
 Commands:
   summary         Generates an HDFS usage summary (default command if no other
                     command specified)
   smallfiles, sf  Reports on small file usage
+  inode, i        Shows INode details
 Runs summary command by default.
 ```
 
@@ -122,6 +122,43 @@ mm       |            3 | /
          |            1 | /test3/foo
          |            1 | /test3/foo/bar
 ---------------------------------------------------
+```
+### Show INode details 
+
+Show details of selected INode, eg by directory path or file path or inode ID:
+```
+> hfsa-tool-1.x/bin/hfsa-tool src/test/resources/fsi_small.img inode "/test3" "/test3/test_160MiB.img"
+type: DIRECTORY
+id: 16388
+name: "test3"
+directory {
+  modificationTime: 1497734744891
+  nsQuota: 18446744073709551615
+  dsQuota: 18446744073709551615
+  permission: 1099511759341
+}
+
+type: FILE
+id: 16402
+name: "test_160MiB.img"
+file {
+  replication: 1
+  modificationTime: 1497734744886
+  accessTime: 1497734743534
+  preferredBlockSize: 134217728
+  permission: 5497558401444
+  blocks {
+    blockId: 1073741834
+    genStamp: 1010
+    numBytes: 134217728
+  }
+  blocks {
+    blockId: 1073741835
+    genStamp: 1011
+    numBytes: 33554432
+  }
+  storagePolicyID: 0
+}
 ```
 ### Requirements 
 

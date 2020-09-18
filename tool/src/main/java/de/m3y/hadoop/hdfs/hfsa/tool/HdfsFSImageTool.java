@@ -22,10 +22,23 @@ public class HdfsFSImageTool {
      * Generic options shared by all commands, like fsimage file or verbosity.
      */
     abstract static class BaseCommand implements Runnable {
-        @Option(names = "-v",
-                description = "Turns on verbose output. Use `-vv` for debug output."
-        )
-        boolean[] verbose = new boolean[0];
+        @Option(names = "-v", description = "Turns on verbose output. Use `-vv` for debug output.",
+                scope = ScopeType.INHERIT) // option is shared with subcommands
+        public void setVerbose(boolean[] verbose) {
+            final org.apache.log4j.Logger rootLogger = getRootLogger();
+            if (null == verbose) {
+                rootLogger.setLevel(Level.WARN);
+            } else {
+                if (null != verbose) {
+                    if (verbose.length == 1) {
+                        rootLogger.setLevel(Level.INFO);
+                    } else {
+                        rootLogger.setLevel(Level.DEBUG);
+                        LOG.debug("Debug logging enabled");
+                    }
+                }
+            }
+        }
 
         @Parameters(paramLabel = "FILE", arity = "1",
                 description = "FSImage file to process.")
@@ -47,7 +60,7 @@ public class HdfsFSImageTool {
             mixinStandardHelpOptions = true,
             versionProvider = VersionProvider.class,
             showDefaultValues = true,
-            subcommands = {SummaryReportCommand.class, SmallFilesReportCommand.class}
+            subcommands = {SummaryReportCommand.class, SmallFilesReportCommand.class, InodeInfoCommand.class}
     )
     static class MainCommand extends BaseCommand {
         PrintStream out = HdfsFSImageTool.out;
@@ -86,24 +99,8 @@ public class HdfsFSImageTool {
         cmd.setExecutionStrategy(new RunLast());
         return cmd.execute(args);
     }
+
     public static void main(String[] args) {
         System.exit(run(args));
-    }
-
-    private static void handleVerboseMode(Model.OptionSpec verbose) {
-        final org.apache.log4j.Logger rootLogger = getRootLogger();
-        if (null == verbose) {
-            rootLogger.setLevel(Level.WARN);
-        } else {
-            boolean[] values = verbose.getValue();
-            if (null != values) {
-                if (values.length == 1) {
-                    rootLogger.setLevel(Level.INFO);
-                } else {
-                    rootLogger.setLevel(Level.DEBUG);
-                    LOG.debug("Debug logging enabled");
-                }
-            }
-        }
     }
 }

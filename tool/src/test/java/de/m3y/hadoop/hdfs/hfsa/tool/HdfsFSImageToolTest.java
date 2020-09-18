@@ -45,12 +45,12 @@ public class HdfsFSImageToolTest {
                         "                  Directory path(s) to start traversing (default: [/]).\n" +
                         "                    Default: [/]\n" +
                         "  -v              Turns on verbose output. Use `-vv` for debug output.\n" +
-                        "                    Default: []\n" +
                         "  -V, --version   Print version information and exit.\n" +
                         "Commands:\n" +
                         "  summary         Generates an HDFS usage summary (default command if no other\n" +
                         "                    command specified)\n" +
                         "  smallfiles, sf  Reports on small file usage\n" +
+                        "  inode, i        Shows INode details\n" +
                         "Runs summary command by default.\n"
 
                 );
