@@ -51,6 +51,7 @@ public class HdfsFSImageToolTest {
                         "                    command specified)\n" +
                         "  smallfiles, sf  Reports on small file usage\n" +
                         "  inode, i        Shows INode details\n" +
+                        "  path, p         Lists INode paths\n" +
                         "Runs summary command by default.\n"
 
                 );

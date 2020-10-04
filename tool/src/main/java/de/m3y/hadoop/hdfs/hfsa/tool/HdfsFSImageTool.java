@@ -60,7 +60,12 @@ public class HdfsFSImageTool {
             mixinStandardHelpOptions = true,
             versionProvider = VersionProvider.class,
             showDefaultValues = true,
-            subcommands = {SummaryReportCommand.class, SmallFilesReportCommand.class, InodeInfoCommand.class}
+            subcommands = {
+                    SummaryReportCommand.class,
+                    SmallFilesReportCommand.class,
+                    InodeInfoCommand.class,
+                    PathReportCommand.class
+            }
     )
     static class MainCommand extends BaseCommand {
         PrintStream out = HdfsFSImageTool.out;

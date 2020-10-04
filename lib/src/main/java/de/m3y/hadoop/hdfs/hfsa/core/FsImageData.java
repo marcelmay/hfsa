@@ -13,10 +13,7 @@ import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FSImageFormatPBINode;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
-import org.apache.hadoop.hdfs.server.namenode.INodeId;
-import org.apache.hadoop.hdfs.server.namenode.SerialNumberManager;
+import org.apache.hadoop.hdfs.server.namenode.*;
 
 /**
  * Represents a loaded FSImage.
@@ -238,22 +235,30 @@ public class FsImageData {
      * @return the permission status.
      */
     public PermissionStatus getPermissionStatus(FsImageProto.INodeSection.INode inode) {
+        return FSImageFormatPBINode.Loader.loadPermission(
+                getPermission(inode), stringTable);
+    }
+
+    /**
+     * Gets the permission status for a file or directory or symlink path.
+     *
+     * @param inode the path for a file or directory or symlink.
+     * @return the numeric permission.
+     */
+    public long getPermission(FsImageProto.INodeSection.INode inode) {
         switch (inode.getType()) {
             case FILE:
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                return FSImageFormatPBINode.Loader.loadPermission(
-                        f.getPermission(), stringTable);
+                return f.getPermission();
             case DIRECTORY:
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                return FSImageFormatPBINode.Loader.loadPermission(
-                        d.getPermission(), stringTable);
+                return d.getPermission();
             case SYMLINK:
                 FsImageProto.INodeSection.INodeSymlink s = inode.getSymlink();
-                return FSImageFormatPBINode.Loader.loadPermission(
-                        s.getPermission(), stringTable);
+                return s.getPermission();
             default:
                 throw new IllegalStateException("No implementation for getting permission status for type "
-                        + inode.getType().name());
+                        + inode.getType().name() +" of INode "+inode);
         }
     }
 

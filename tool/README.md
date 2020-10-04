@@ -36,12 +36,13 @@ Commands:
                     command specified)
   smallfiles, sf  Reports on small file usage
   inode, i        Shows INode details
+  path, p         Lists INode paths
 Runs summary command by default.
 ```
 
 #### Example
 ```
-> hfsa-tool-1.x/bin/hfsa-tool src/test/resources/fsi_small.img 
+> hfsa-tool src/test/resources/fsi_small.img 
 
 HDFS Summary : /
 ----------------
@@ -97,7 +98,7 @@ Reports on small file usage
 Report on small files less than 3 megabytes, for all users matching regexp `m.*`:
 
 ```
-> hfsa-tool-1.x/bin/hfsa-tool -fun="m.*" src/test/resources/fsi_small.img smallfiles --fsl 3MiB
+> hfsa-tool -fun="m.*" src/test/resources/fsi_small.img smallfiles --fsl 3MiB
 
 Small files report (< 3 MiB)
 
@@ -123,11 +124,11 @@ mm       |            3 | /
          |            1 | /test3/foo/bar
 ---------------------------------------------------
 ```
-### Show INode details 
+#### Show INode details 
 
 Show details of selected INode, eg by directory path or file path or inode ID:
 ```
-> hfsa-tool-1.x/bin/hfsa-tool src/test/resources/fsi_small.img inode "/test3" "/test3/test_160MiB.img"
+> hfsa-tool src/test/resources/fsi_small.img inode "/test3" "/test3/test_160MiB.img"
 type: DIRECTORY
 id: 16388
 name: "test3"
@@ -159,6 +160,33 @@ file {
   }
   storagePolicyID: 0
 }
+```
+
+#### Lists INode paths
+Lists all INode paths (files, directories, symlinks) similliar to a recursive 'ls'.
+
+Example filtering user with regexp `m.*` and for paths `/test3` and `/test1` :
+```
+> hfsa-tool -fun="m.*" -p "/test3","/test1" src/test/resources/fsi_small.img p
+
+Path report (paths=[/test3, /test1], user=~m.*) :
+-------------------------------------------------
+
+8 files, 4 directories and 0 symlinks
+
+drwxr-xr-x mm supergroup /test1/test1
+drwxr-xr-x mm supergroup /test3/foo
+drwxr-xr-x mm supergroup /test3/foo/bar
+-rw-r--r-- mm nobody     /test3/foo/bar/test_20MiB.img
+-rw-r--r-- mm supergroup /test3/foo/bar/test_2MiB.img
+-rw-r--r-- mm supergroup /test3/foo/bar/test_40MiB.img
+-rw-r--r-- mm supergroup /test3/foo/bar/test_4MiB.img
+-rw-r--r-- mm supergroup /test3/foo/bar/test_5MiB.img
+-rw-r--r-- mm supergroup /test3/foo/bar/test_80MiB.img
+-rw-r--r-- mm supergroup /test3/foo/test_20MiB.img
+-rw-r--r-- mm supergroup /test3/test.img
+drwxr-xr-x mm supergroup /test3/test3
+
 ```
 ### Requirements 
 

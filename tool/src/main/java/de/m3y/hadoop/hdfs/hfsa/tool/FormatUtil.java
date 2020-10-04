@@ -77,6 +77,18 @@ class FormatUtil {
     }
 
     /**
+     * Appends chars to string buffer.
+     * @param buf the string buffer
+     * @param c the char
+     * @param count the number of chars to append
+     */
+    public static void padRight(StringBuilder buf, char c, int count) {
+        for(int i=0;i<count;i++) {
+            buf.append(c);
+        }
+    }
+
+    /**
      * Pad and box primitive array.
      *
      * @param length the max length.
