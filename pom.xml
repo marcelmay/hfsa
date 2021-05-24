@@ -27,7 +27,7 @@
     <licenses>
         <license>
             <name>Apache 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
 
@@ -243,8 +243,8 @@
                     <configuration>
                         <links>
                             <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>http://hadoop.apache.org/docs/r3.2.1/api/</link>
-                            <link>https://google.github.io/guava/releases/28.1-jre/api/docs/</link>
+                            <link>https://hadoop.apache.org/docs/r3.3.0/api/</link>
+                            <link>https://google.github.io/guava/releases/30.1.1-jre/api/docs/</link>
                         </links>
                     </configuration>
                 </plugin>

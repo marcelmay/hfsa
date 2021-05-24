@@ -9,11 +9,11 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
 * [tooling](tool) support for summary overview of the HDFS data files and directories of users and groups
   (answering 'who has how many/big/small files...')
 * a [library](lib) for fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
-  derived from [Apache HDFS FSImageLoder](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java) )
+  derived from [Apache HDFS FSImageLoader](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java)
 
 ## Example usage for library
 
-See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FSImageLoaderTest.java) for example usage.  
+See [FSImageLoaderTest.java](lib/src/test/java/de/m3y/hadoop/hdfs/hfsa/core/FsImageLoaderTest.java) for example usage.  
 
 The following lines visit all directory-, file- and symlink inodes:
 ```java
@@ -86,7 +86,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,

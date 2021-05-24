@@ -40,7 +40,7 @@ public class FsImageGenerator {
         final int maxDirWidth = Math.min(2, ABC.length());
         /* "a...z".length * factor = number of files per directory generated */
         final int filesPerDirectoryFactor = 10;
-        final boolean enableDefaultCompression = Boolean.valueOf(System.getProperty(
+        final boolean enableDefaultCompression = Boolean.parseBoolean(System.getProperty(
                 DFSConfigKeys.DFS_IMAGE_COMPRESS_KEY, Boolean.toString(DFSConfigKeys.DFS_IMAGE_COMPRESS_DEFAULT)));
 
         /*

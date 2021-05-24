@@ -126,7 +126,7 @@ mm       |            3 | /
 ```
 #### Show INode details 
 
-Show details of selected INode, eg by directory path or file path or inode ID:
+Show details of selected INode, e.g. by directory path or file path or inode ID:
 ```
 > hfsa-tool src/test/resources/fsi_small.img inode "/test3" "/test3/test_160MiB.img"
 type: DIRECTORY

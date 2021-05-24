@@ -1,7 +1,7 @@
 # Hadoop FSImage Analyzer (HFSA)
 
 The HFSA lib supports fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
-  derived from [Apache HDFS FSImageLoder](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java) )
+  derived from [Apache HDFS FSImageLoader](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java)
 
 ### Example Usage
 Use `parallel()` for multi-threaded execution when loading or visiting INode hierarchy:
