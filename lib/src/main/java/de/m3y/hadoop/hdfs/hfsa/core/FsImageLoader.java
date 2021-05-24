@@ -150,7 +150,8 @@ public class FsImageLoader {
                     cache[i] = extractNodeId(buf[i]);
                 }
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("Computed inodes idx to id cache in {}ms", System.currentTimeMillis() - start);
+                    LOG.debug("Computed inodes idx to id cache[len={}] in {}ms",
+                            cache.length, System.currentTimeMillis() - start);
                 }
                 return cache;
             }
