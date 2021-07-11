@@ -188,6 +188,22 @@ drwxr-xr-x mm supergroup /test3/foo/bar
 drwxr-xr-x mm supergroup /test3/test3
 
 ```
+
+#### Report top size usage locations for a user
+
+Useful to find locations with old data.
+
+```
+> hfsa-tool src/test/resources/fsi_small.img uu -a 60d mm 
+
+Size report (user=mm, start dir=/, last modification older 2021-05-12T23:49:44.203)
+
+/              | 172 MiB
+/test3         | 172 MiB
+/test3/foo     | 171 MiB
+/test3/foo/bar | 151 MiB
+```
+
 ### Requirements 
 
 See [requirements](../README.md#requirements)

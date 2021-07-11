@@ -64,7 +64,8 @@ public class HdfsFSImageTool {
                     SummaryReportCommand.class,
                     SmallFilesReportCommand.class,
                     InodeInfoCommand.class,
-                    PathReportCommand.class
+                    PathReportCommand.class,
+                    UserUsageReportCommand.class
             }
     )
     static class MainCommand extends BaseCommand {
@@ -85,12 +86,13 @@ public class HdfsFSImageTool {
 
     protected static int run(String[] args) {
         final IExecutionExceptionHandler exceptionHandler = (ex, commandLine, parseResult) -> {
-            commandLine.getErr().println(commandLine.getColorScheme().errorText(ex.getMessage()));
+            String message = null == ex.getMessage() ? "" : ex.getMessage();
+            commandLine.getErr().println(commandLine.getColorScheme().errorText(message));
             if (getRootLogger().isInfoEnabled()) {
                 commandLine.getErr().println("Exiting - use option [-v] for more verbose details.");
             }
             if (getRootLogger().isDebugEnabled()) {
-                commandLine.getErr().println(commandLine.getColorScheme().errorText(ex.getMessage()));
+                commandLine.getErr().println(commandLine.getColorScheme().errorText(message));
             }
             return commandLine.getExitCodeExceptionMapper() != null
                     ? commandLine.getExitCodeExceptionMapper().getExitCode(ex)
