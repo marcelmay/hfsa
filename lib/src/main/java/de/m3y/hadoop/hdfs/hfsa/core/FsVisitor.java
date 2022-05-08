@@ -65,7 +65,7 @@ public interface FsVisitor {
         /**
          * Copy constructor
          *
-         * @param fsVisitorStrategy the strategy to visit eg in parallel.
+         * @param fsVisitorStrategy the strategy to visit e.g. in parallel.
          */
         protected Builder(FsVisitorStrategy fsVisitorStrategy) {
             this.fsVisitorStrategy = fsVisitorStrategy;

@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Helps handling IEC binary units such as KiB.
+ * Helps to handle IEC binary units such as KiB.
  */
 public class IECBinary {
     private static final Pattern PATTERN_VALUE_WITH_STORAGE_UNIT = Pattern.compile("(\\d+)\\s*(\\w*)");

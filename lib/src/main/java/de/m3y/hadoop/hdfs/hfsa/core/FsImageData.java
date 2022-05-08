@@ -40,7 +40,7 @@ public class FsImageData {
      *
      * @param path the directory path.
      * @return a list of file inodes, or an empty list.
-     * @throws IOException on error, eg FileNotFoundException if path does not exist
+     * @throws IOException on error, e.g. FileNotFoundException if path does not exist
      */
     public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
         final FsImageProto.INodeSection.INode nodeId = getINodeFromPath(path);
@@ -139,7 +139,7 @@ public class FsImageData {
      *
      * @param path the parent directory path.
      * @return the list of child directory paths.
-     * @throws IOException on error, eg FileNotFoundException if path does not exist.
+     * @throws IOException on error, e.g. FileNotFoundException if path does not exist.
      */
     public List<String> getChildDirectories(String path) throws IOException {
         final long parentNodeId = lookupInodeId(path);
@@ -263,7 +263,7 @@ public class FsImageData {
     }
 
     /**
-     * Returns the INode Id of the specified path, or if not found throws FileNotFoundException.
+     * Returns the INode id of the specified path, or if not found throws FileNotFoundException.
      *
      * @param path the path.
      * @return the inode id.
@@ -286,7 +286,7 @@ public class FsImageData {
      * Gets the number of INode children.
      *
      * @param inode the inode.
-     * @return the number of children or 0 (eg when type FILE or SYMLINK).
+     * @return the number of children or 0 (e.g. when type FILE or SYMLINK).
      */
     public int getNumChildren(FsImageProto.INodeSection.INode inode) {
         return dirMap.get(inode.getId()).length;

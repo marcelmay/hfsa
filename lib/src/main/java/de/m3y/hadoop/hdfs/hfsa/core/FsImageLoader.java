@@ -53,10 +53,10 @@ import static org.apache.hadoop.hdfs.server.namenode.SerialNumberManager.newStri
  * file status of the namespace of the fsimage.
  * <p>
  * Note: This class is based on the original FSImageLoader from Hadoop:
- * https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java
+ * <a href="https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java">https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java</a>
  * <p>
  * An introduction to FSImage design:
- * https://jira.apache.org/jira/browse/HDFS-5698
+ * <a href="https://jira.apache.org/jira/browse/HDFS-5698">https://jira.apache.org/jira/browse/HDFS-5698</a>
  * <p>
  * Usage:
  * <code>
@@ -201,7 +201,7 @@ public class FsImageLoader {
             // Pretty much of a hack, as Protobuf 2.5 does not partial parsing
             // In a micro benchmark, it is several times(!) faster than
             // FsImageProto.INodeSection.INode.parseFrom(o2).getId()
-            // - obviously, there are less instances created and less unmarshalling involved.
+            // - obviously, there are fewer instances created and less unmarshalling involved.
 
             // INode wire format:
             // tag 8

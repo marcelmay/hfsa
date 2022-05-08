@@ -4,7 +4,7 @@ The HFSA lib supports fast and partly multithreaded fsimage processing API file-
   derived from [Apache HDFS FSImageLoader](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java)
 
 ### Example Usage
-Use `parallel()` for multi-threaded execution when loading or visiting INode hierarchy:
+Use `parallel()` for multithreaded execution when loading or visiting INode hierarchy:
 ```
 RandomAccessFile file = new RandomAccessFile("src/test/resources/fsi_small.img", "r");
 FsImageData fsimageData = new FsImageLoader.Builder().parallel().build().load(file);

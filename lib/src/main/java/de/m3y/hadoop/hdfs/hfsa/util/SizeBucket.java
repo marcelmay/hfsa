@@ -11,7 +11,7 @@ public class SizeBucket {
     private long[] fileSizeBuckets;
 
     /**
-     * Allows different kind of buckets, eg fixed size or exponential ones.
+     * Allows different kind of buckets, e.g. fixed size or exponential ones.
      */
     public interface BucketModel {
         /**
