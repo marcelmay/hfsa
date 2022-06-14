@@ -4,7 +4,7 @@
 
     <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
     <artifactId>hfsa-parent</artifactId>
-    <version>1.3.5</version>
+    <version>1.3.6-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Hadoop File System Analyzer (HFSA)</name>
 
@@ -62,12 +62,12 @@
             <dependency>
                 <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
                 <artifactId>hfsa-lib</artifactId>
-                <version>1.3.5</version>
+                <version>1.3.6-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>de.m3y.hadoop.hdfs.hfsa</groupId>
                 <artifactId>hfsa-tool</artifactId>
-                <version>1.3.5</version>
+                <version>1.3.6-SNAPSHOT</version>
             </dependency>
 
             <!-- 3rd party dependencies -->
