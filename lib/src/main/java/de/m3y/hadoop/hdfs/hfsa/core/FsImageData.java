@@ -148,7 +148,9 @@ public class FsImageData {
             return Collections.emptyList();
         } else {
             List<String> childPaths = new ArrayList<>();
-            final String pathWithTrailingSlash = ROOT_PATH.equals(path) ? path : path + PATH_SEPARATOR;
+            final String pathWithTrailingSlash = path.lastIndexOf(PATH_SEPARATOR)==path.length()-1
+                    ? path
+                    : path + PATH_SEPARATOR;
             for (long cid : children) {
                 final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
                 if (FsUtil.isDirectory(inode)) {

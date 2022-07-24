@@ -303,6 +303,14 @@ public class FsImageLoaderTest {
         List<String> childPaths = fsImageData.getChildDirectories("/");
         String[] expectedChildPaths = new String[]{"/user", "/test1", "/test2", "/test3", "/datalake"};
         assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
+
+        childPaths = fsImageData.getChildDirectories("/datalake");
+        expectedChildPaths = new String[]{"/datalake/asset1", "/datalake/asset2", "/datalake/asset3"};
+        assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
+
+        childPaths = fsImageData.getChildDirectories("/datalake/");
+        expectedChildPaths = new String[]{"/datalake/asset1", "/datalake/asset2", "/datalake/asset3"};
+        assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
     }
 
     @Test
