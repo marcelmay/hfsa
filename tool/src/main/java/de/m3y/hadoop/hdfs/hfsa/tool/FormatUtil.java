@@ -5,7 +5,7 @@ import java.util.Arrays;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
 
 /**
- * Helps formatting output.
+ * Helps to format output.
  */
 class FormatUtil {
 

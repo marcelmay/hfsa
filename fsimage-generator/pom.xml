@@ -43,7 +43,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>compile</scope> <!-- Needs to be compile because of tmp. MiniDFSCluster spin up -->
+            <scope>compile</scope> <!-- Needs to be compiled because of tmp. MiniDFSCluster spin up -->
         </dependency>
     </dependencies>
     <build>

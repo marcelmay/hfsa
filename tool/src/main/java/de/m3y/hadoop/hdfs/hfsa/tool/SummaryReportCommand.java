@@ -224,7 +224,7 @@ class SummaryReportCommand extends AbstractReportCommand {
 
     static List<UserStats> filterByUserName(Collection<UserStats> userStats, String userNamePattern) {
         List<UserStats> filtered = new ArrayList<>(userStats);
-        // user name
+        // username
         if (null != userNamePattern && !userNamePattern.isEmpty()) {
             Pattern pattern = Pattern.compile(userNamePattern);
             filtered.removeIf(u -> !pattern.matcher(u.userName).find());
