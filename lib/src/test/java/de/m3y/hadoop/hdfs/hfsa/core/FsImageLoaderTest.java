@@ -311,6 +311,15 @@ public class FsImageLoaderTest {
         childPaths = fsImageData.getChildDirectories("/datalake/");
         expectedChildPaths = new String[]{"/datalake/asset1", "/datalake/asset2", "/datalake/asset3"};
         assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
+
+        // Using name filter
+        childPaths = fsImageData.getChildDirectories("/datalake/", inode -> inode.getName().toStringUtf8().contains("2") );
+        expectedChildPaths = new String[]{"/datalake/asset2"};
+        assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
+
+        childPaths = fsImageData.getChildDirectories("/", inode -> inode.getName().toStringUtf8().startsWith("test") );
+        expectedChildPaths = new String[]{"/test1", "/test2", "/test3"};
+        assertThat(childPaths).containsExactlyInAnyOrder(expectedChildPaths);
     }
 
     @Test

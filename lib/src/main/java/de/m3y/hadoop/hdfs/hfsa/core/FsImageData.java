@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
@@ -142,6 +143,17 @@ public class FsImageData {
      * @throws IOException on error, e.g. FileNotFoundException if path does not exist.
      */
     public List<String> getChildDirectories(String path) throws IOException {
+        return getChildDirectories(path,childName -> true );
+    }
+    /**
+     * Gets the child directory absolute paths for given path.
+     *
+     * @param path the parent directory path.
+     * @param filter filters the child directory inode (use e.g.  inode.getName().toStringUtf8() to get name)
+     * @return the list of child directory paths.
+     * @throws IOException on error, e.g. FileNotFoundException if path does not exist.
+     */
+    public List<String> getChildDirectories(String path, Predicate<FsImageProto.INodeSection.INode> filter) throws IOException {
         final long parentNodeId = lookupInodeId(path);
         long[] children = dirMap.get(parentNodeId);
         if (children.length == 0) {
@@ -154,7 +166,9 @@ public class FsImageData {
             for (long cid : children) {
                 final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
                 if (FsUtil.isDirectory(inode)) {
-                    childPaths.add(pathWithTrailingSlash + inode.getName().toStringUtf8());
+                    if(filter.test(inode)) {
+                        childPaths.add(pathWithTrailingSlash +  inode.getName().toStringUtf8());
+                    }
                 }
             }
             return childPaths;
