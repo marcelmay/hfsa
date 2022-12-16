@@ -103,7 +103,11 @@
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.squareup.okhttp</groupId>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
@@ -213,10 +217,6 @@
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>commons-collections</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
@@ -273,10 +273,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
