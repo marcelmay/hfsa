@@ -62,7 +62,7 @@ new FsVisitor.Builder()
 - JDK 1.8 (11 recommended for running)
 - Hadoop 2.x or 3.x fsimage  
   Note: hfsa lib version 1.2+ has Hadoop 3.x dependencies but still works for Hadoop 2.x fsimages
-- Maven 3.6.x (for building from source)
+- Maven 3.8.x (for building from source)
 
 ### Building
 
