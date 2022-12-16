@@ -39,7 +39,7 @@ public class FsUtil {
     }
 
     /**
-     * Checks if INode is a sym link.
+     * Checks if INode is a symlink.
      *
      * @param inode the inode.
      * @return true, if symlink.

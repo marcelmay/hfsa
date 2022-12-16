@@ -163,7 +163,7 @@ file {
 ```
 
 #### Lists INode paths
-Lists all INode paths (files, directories, symlinks) similliar to a recursive 'ls'.
+Lists all INode paths (files, directories, symlinks) similar to a recursive 'ls'.
 
 Example filtering user with regexp `m.*` and for paths `/test3` and `/test1` :
 ```

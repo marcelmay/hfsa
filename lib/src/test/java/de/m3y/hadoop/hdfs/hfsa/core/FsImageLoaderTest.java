@@ -162,11 +162,11 @@ public class FsImageLoaderTest {
             final FsImageData hadoopV3xCompressedImage = new FsImageLoader.Builder().parallel().build().load(file);
             final CountingVisitor visitor = new CountingVisitor(hadoopV3xCompressedImage);
             new FsVisitor.Builder().parallel().visit(hadoopV3xCompressedImage, visitor);
-            assertThat(visitor.groups.size()).isEqualTo(1);
-            assertThat(visitor.users.size()).isEqualTo(1);
+            assertThat(visitor.groups).hasSize(1);
+            assertThat(visitor.users).hasSize(1);
             assertThat(visitor.numFiles.get()).isEqualTo(209560L);
             assertThat(visitor.numDirs.get()).isEqualTo(807L);
-            assertThat(visitor.numSymLinks.get()).isEqualTo(0L);
+            assertThat(visitor.numSymLinks.get()).isZero();
         }
     }
 
@@ -184,11 +184,11 @@ public class FsImageLoaderTest {
         final ExtendedCountingVisitor visitor = new ExtendedCountingVisitor(fsImageData);
         builder.visit(fsImageData, visitor);
 
-        assertThat(visitor.users.size()).isEqualTo(3);
-        assertThat(visitor.groups.size()).isEqualTo(3);
+        assertThat(visitor.users).hasSize(3);
+        assertThat(visitor.groups).hasSize(3);
         assertThat(visitor.numDirs.get()).isEqualTo(14);
         assertThat(visitor.numFiles.get()).isEqualTo(16);
-        assertThat(visitor.numSymLinks.get()).isEqualTo(0);
+        assertThat(visitor.numSymLinks.get()).isZero();
         assertThat(visitor.sumFileSize.get()).isEqualTo(356417536L);
 
         String[] expectedPaths = new String[]{
@@ -242,11 +242,11 @@ public class FsImageLoaderTest {
 
         new FsVisitor.Builder().visit(fsImageData, visitor , "/test3");
 
-        assertThat(visitor.users.size()).isEqualTo(3);
-        assertThat(visitor.groups.size()).isEqualTo(3);
+        assertThat(visitor.users).hasSize(3);
+        assertThat(visitor.groups).hasSize(3);
         assertThat(visitor.numDirs.get()).isEqualTo(3);
         assertThat(visitor.numFiles.get()).isEqualTo(10);
-        assertThat(visitor.numSymLinks.get()).isEqualTo(0);
+        assertThat(visitor.numSymLinks.get()).isZero();
         assertThat(visitor.sumFileSize.get()).isEqualTo(348025856L);
 
         String[] expectedPaths = new String[]{
@@ -272,7 +272,7 @@ public class FsImageLoaderTest {
     public void testGetInodeFromPath() throws IOException {
         final FsImageProto.INodeSection.INode rootNode = fsImageData.getINodeFromPath("/");
         // Root node has empty name
-        assertThat(rootNode.getName().toStringUtf8()).isEqualTo("");
+        assertThat(rootNode.getName().toStringUtf8()).isEmpty();
         assertThat(rootNode.getType()).isEqualTo(FsImageProto.INodeSection.INode.Type.DIRECTORY);
 
         final FsImageProto.INodeSection.INode test3Node = fsImageData.getINodeFromPath("/test3");
@@ -289,10 +289,10 @@ public class FsImageLoaderTest {
 
         // Behave like java.io.File (POSIX), which allows redundant slashes
         final FsImageProto.INodeSection.INode rootRootNode = fsImageData.getINodeFromPath("//");
-        assertThat(rootRootNode.getName().toStringUtf8()).isEqualTo("");
+        assertThat(rootRootNode.getName().toStringUtf8()).isEmpty();
 
         final FsImageProto.INodeSection.INode r3Node = fsImageData.getINodeFromPath("///");
-        assertThat(r3Node.getName().toStringUtf8()).isEqualTo("");
+        assertThat(r3Node.getName().toStringUtf8()).isEmpty();
 
         final FsImageProto.INodeSection.INode r3FileNode = fsImageData.getINodeFromPath("///test3//test_160MiB.img");
         assertThat(r3FileNode.getName().toStringUtf8()).isEqualTo("test_160MiB.img");
@@ -326,18 +326,19 @@ public class FsImageLoaderTest {
     public void testGetFileINodesInDirectory() throws IOException {
         // Directory with no files but another directory
         List<FsImageProto.INodeSection.INode> files = fsImageData.getFileINodesInDirectory("/user");
-        assertThat(files.size()).isEqualTo(0);
+        assertThat(files).isEmpty();
 
         // Directory with two files
         files = fsImageData.getFileINodesInDirectory("/test3");
-        assertThat(files.size()).isEqualTo(2);
+        assertThat(files).hasSize(2);
         final List<String> fileNames = files.stream().map((n) -> n.getName().toStringUtf8()).collect(Collectors.toList());
-        assertThat(fileNames).contains("test.img");
-        assertThat(fileNames).contains("test_160MiB.img");
+        assertThat(fileNames)
+                .contains("test.img")
+                .contains("test_160MiB.img");
 
         // Root has a single file
         files = fsImageData.getFileINodesInDirectory("/");
-        assertThat(files.size()).isEqualTo(1);
+        assertThat(files).hasSize(1);
 
         // Invalid directory
         assertThatExceptionOfType(FileNotFoundException.class)

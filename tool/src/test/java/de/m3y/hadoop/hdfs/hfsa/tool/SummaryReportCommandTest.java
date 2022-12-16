@@ -100,7 +100,7 @@ public class SummaryReportCommandTest {
 
         String userNameFilter = "^foo.*";
         List<UserStats> filtered = filterByUserName(list, userNameFilter);
-        assertThat(filtered.size()).isEqualTo(2);
+        assertThat(filtered).hasSize(2);
         assertThat(filtered.get(0).userName).isEqualTo("foobar");
         assertThat(filtered.get(1).userName).isEqualTo("foo_bar");
 

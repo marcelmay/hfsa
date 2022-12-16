@@ -29,13 +29,11 @@ public class HdfsFSImageTool {
             if (null == verbose) {
                 rootLogger.setLevel(Level.WARN);
             } else {
-                if (null != verbose) {
-                    if (verbose.length == 1) {
-                        rootLogger.setLevel(Level.INFO);
-                    } else {
-                        rootLogger.setLevel(Level.DEBUG);
-                        LOG.debug("Debug logging enabled");
-                    }
+                if (verbose.length == 1) {
+                    rootLogger.setLevel(Level.INFO);
+                } else {
+                    rootLogger.setLevel(Level.DEBUG);
+                    LOG.debug("Debug logging enabled");
                 }
             }
         }

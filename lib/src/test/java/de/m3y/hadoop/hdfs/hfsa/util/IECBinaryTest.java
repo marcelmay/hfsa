@@ -20,9 +20,9 @@ public class IECBinaryTest {
             assertThat(IECBinary.parse(formattedValues[i])).isEqualTo(rawValues[i]);
         }
 
-        assertThat(IECBinary.parse("0")).isEqualTo(0);
-        assertThat(IECBinary.parse("0B")).isEqualTo(0);
-        assertThat(IECBinary.parse("1  KiB")).isEqualTo(1024);
+        assertThat(IECBinary.parse("0")).isZero();
+        assertThat(IECBinary.parse("0B")).isZero();
+        assertThat(IECBinary.parse("1  KiB")).isEqualTo(1024L);
 
         // Exceptional values
         for (String value : new String[]{"", " ", "KiB"}) {

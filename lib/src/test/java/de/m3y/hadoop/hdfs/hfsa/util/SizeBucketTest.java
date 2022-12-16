@@ -10,12 +10,12 @@ public class SizeBucketTest {
     public void testBucketAdd() {
         SizeBucket sizeBucket = new SizeBucket();
 
-        assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(0);
-        assertThat(sizeBucket.getBucketCounter(0)).isEqualTo(0);
-        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(0);
+        assertThat(sizeBucket.findMaxNumBucket()).isZero();
+        assertThat(sizeBucket.getBucketCounter(0)).isZero();
+        assertThat(sizeBucket.findMaxBucketCount()).isZero();
         sizeBucket.add(0L);
         assertThat(sizeBucket.get()).isEqualTo(new long[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-        assertThat(sizeBucket.findMaxNumBucket()).isEqualTo(0);
+        assertThat(sizeBucket.findMaxNumBucket()).isZero();
         assertThat(sizeBucket.getBucketCounter(0)).isEqualTo(1);
         sizeBucket.add(1L);
         assertThat(sizeBucket.get()).isEqualTo(new long[]{1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
@@ -56,7 +56,7 @@ public class SizeBucketTest {
     @Test
     public void testMaxBucketCount() {
         SizeBucket sizeBucket = new SizeBucket();
-        assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(0);
+        assertThat(sizeBucket.findMaxBucketCount()).isZero();
 
         sizeBucket.add(0L);
         assertThat(sizeBucket.findMaxBucketCount()).isEqualTo(1);

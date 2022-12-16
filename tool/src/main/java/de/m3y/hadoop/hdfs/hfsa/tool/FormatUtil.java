@@ -45,11 +45,11 @@ class FormatUtil {
     }
 
     static int[] numberOfDigits(long[] numbers) {
-        int[] lenghts = new int[numbers.length];
-        for (int i = 0; i < lenghts.length; i++) {
-            lenghts[i] = numberOfDigits(numbers[i]);
+        int[] lengths = new int[numbers.length];
+        for (int i = 0; i < lengths.length; i++) {
+            lengths[i] = numberOfDigits(numbers[i]);
         }
-        return lenghts;
+        return lengths;
     }
 
     static int[] length(String[] bucketUnits) {

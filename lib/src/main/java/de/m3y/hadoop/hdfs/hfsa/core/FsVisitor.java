@@ -38,7 +38,7 @@ public interface FsVisitor {
     /**
      * Invoked for each sym link.
      *
-     * @param inode the sym link inode.
+     * @param inode the symlink inode.
      * @param path  the current path.
      */
     void onSymLink(FsImageProto.INodeSection.INode inode, String path);
