@@ -85,7 +85,7 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs-client</artifactId>
-                <version>3.3.4</version>
+                <version>3.3.5</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -242,7 +242,7 @@
                     <configuration>
                         <links>
                             <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>https://hadoop.apache.org/docs/r3.3.4/api/</link>
+                            <link>https://hadoop.apache.org/docs/r3.3.5/api/</link>
                             <link>https://google.github.io/guava/releases/31.1-jre/api/docs/</link>
                         </links>
                     </configuration>
