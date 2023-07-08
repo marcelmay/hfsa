@@ -10,6 +10,7 @@ by providing [HDFS fsimage](https://hadoop.apache.org/docs/stable/hadoop-project
   (answering 'who has how many/big/small files...')
 * a [library](lib) for fast and partly multithreaded fsimage processing API file-, directory- and symlink aware visitor,
   derived from [Apache HDFS FSImageLoader](https://github.com/apache/hadoop/blob/master/hadoop-hdfs-project/hadoop-hdfs/src/main/java/org/apache/hadoop/hdfs/tools/offlineImageViewer/FSImageLoader.java)
+* a helper [FSImage file generator](fsimage-generator) for creating synthetic test data
 
 ## Example usage for library
 
@@ -62,7 +63,7 @@ new FsVisitor.Builder()
 - JDK 1.8 (11 recommended for running)
 - Hadoop 2.x or 3.x fsimage  
   Note: hfsa lib version 1.2+ has Hadoop 3.x dependencies but still works for Hadoop 2.x fsimages
-- Maven 3.8.x (for building from source)
+- Maven 3.9.x (for building from source)
 
 ### Building
 
@@ -80,7 +81,7 @@ mvn clean install
 HFSA is released under the [Apache 2.0 license](LICENSE.txt).
 
 ```
-Copyright 2017-2022 Marcel May and project contributors
+Copyright 2017-2023 Marcel May and project contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -22,8 +22,8 @@ public class InodeInfoCommandTest {
             infoCommand.inodeIds = new String[]{"/", "/test3", "/test3/test_160MiB.img", "16387"};
             infoCommand.run();
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo(
+            assertThat(byteArrayOutputStream)
+                    .hasToString(
                             "type: DIRECTORY\n" +
                                     "id: 16385\n" +
                                     "name: \"\"\n" +

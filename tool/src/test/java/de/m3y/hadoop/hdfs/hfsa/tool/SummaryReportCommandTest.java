@@ -25,8 +25,8 @@ public class SummaryReportCommandTest {
             summaryReportCommand.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
             summaryReportCommand.run();
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo("\n" +
+            assertThat(byteArrayOutputStream)
+                    .hasToString("\n" +
                             "HDFS Summary : /\n" +
                             "----------------\n" +
                             "\n" +
@@ -67,8 +67,8 @@ public class SummaryReportCommandTest {
 
             summaryReportCommand.run();
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo("\n" +
+            assertThat(byteArrayOutputStream)
+                    .hasToString("\n" +
                             "HDFS Summary : /\n" +
                             "----------------\n" +
                             "\n" +

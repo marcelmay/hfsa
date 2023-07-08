@@ -48,8 +48,8 @@ public class SmallFilesReportCommandTest {
                     "         |            1 | /test3/foo\n" +
                     "---------------------------------------------------\n";
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo(expected.replace('.', DECIMAL_SEPARATOR));
+            assertThat(byteArrayOutputStream)
+                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
         }
     }
 
@@ -88,8 +88,8 @@ public class SmallFilesReportCommandTest {
                     "mm       |            2 | /\n" +
                     "         |            1 | /test3\n" +
                     "---------------------------------------------------\n";
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo(expected.replace('.', DECIMAL_SEPARATOR) );
+            assertThat(byteArrayOutputStream)
+                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR) );
         }
     }
 }

@@ -31,8 +31,8 @@ public class UserUsageReportCommandTest {
                     "/test3/foo     | 171 MiB\n" +
                     "/test3/foo/bar | 151 MiB\n";
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo(expected.replace('.', DECIMAL_SEPARATOR));
+            assertThat(byteArrayOutputStream)
+                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
         }
     }
 
@@ -56,8 +56,8 @@ public class UserUsageReportCommandTest {
                      "/test3/foo     | 171 MiB\n" +
                      "/test3/foo/bar | 151 MiB\n";
 
-             assertThat(byteArrayOutputStream.toString())
-                     .isEqualTo(expected.replace('.', DECIMAL_SEPARATOR));
+             assertThat(byteArrayOutputStream)
+                     .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
          }
      }
 }

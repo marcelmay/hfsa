@@ -33,8 +33,8 @@ public class HdfsFSImageToolTest {
 
         HdfsFSImageTool.run(new String[]{"-h"});
 
-        assertThat(byteArrayOutputStream.toString())
-                .isEqualTo("Analyze Hadoop FSImage file for user/group reports\n" +
+        assertThat(byteArrayOutputStream)
+                .hasToString("Analyze Hadoop FSImage file for user/group reports\n" +
                         "Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-p=<dirs>[,<dirs>...]]... FILE\n" +
                         "                 [COMMAND]\n" +
                         "      FILE        FSImage file to process.\n" +

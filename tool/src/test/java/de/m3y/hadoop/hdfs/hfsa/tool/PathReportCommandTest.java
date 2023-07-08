@@ -67,8 +67,8 @@ public class PathReportCommandTest {
 
             pathReportCommand.run();
 
-            assertThat(byteArrayOutputStream.toString())
-                    .isEqualTo("\n" +
+            assertThat(byteArrayOutputStream)
+                    .hasToString("\n" +
                             "Path report (path=/, user=~foo) :\n" +
                             "---------------------------------\n" +
                             "\n" +

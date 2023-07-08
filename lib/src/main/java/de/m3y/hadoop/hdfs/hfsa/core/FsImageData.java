@@ -165,10 +165,8 @@ public class FsImageData {
                     : path + PATH_SEPARATOR;
             for (long cid : children) {
                 final FsImageProto.INodeSection.INode inode = inodes.getInode(cid);
-                if (FsUtil.isDirectory(inode)) {
-                    if(filter.test(inode)) {
-                        childPaths.add(pathWithTrailingSlash +  inode.getName().toStringUtf8());
-                    }
+                if (FsUtil.isDirectory(inode) && filter.test(inode)) {
+                    childPaths.add(pathWithTrailingSlash + inode.getName().toStringUtf8());
                 }
             }
             return childPaths;
