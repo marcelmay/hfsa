@@ -240,11 +240,8 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.5.0</version>
                     <configuration>
-                        <links>
-                            <link>https://docs.oracle.com/javase/8/docs/api/</link>
-                            <link>https://hadoop.apache.org/docs/r3.3.5/api/</link>
-                            <link>https://google.github.io/guava/releases/31.1-jre/api/docs/</link>
-                        </links>
+                        <detectLinks>true</detectLinks>
+                        <detectJavaApiLink>true</detectJavaApiLink>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -334,7 +331,7 @@
                         <configuration>
                             <rules>
                                 <requireMavenVersion>
-                                    <version>3.8</version>
+                                    <version>3.9</version>
                                 </requireMavenVersion>
                             </rules>
                         </configuration>
