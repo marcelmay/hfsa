@@ -1,6 +1,6 @@
 # Hadoop FSImage Analyzer (HFSA)
 
-[![Maven Central](https://img.shields.io/maven-central/v/de.m3y.hadoop.hdfs.hfsa/hfsa-parent.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.m3y.hadoop.hdfs.hfsa%22%20AND%20a%3A%22hfsa-parent%22)
+[![Maven Central](https://img.shields.io/maven-central/v/de.m3y.hadoop.hdfs.hfsa/hfsa-parent.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.m3y.hadoop.hdfs.hfsa%22%20AND%20a%3A%22hfsa-parent%22)  [![javadoc](https://javadoc.io/badge2/de.m3y.hadoop.hdfs.hfsa/hfsa-lib/javadoc.svg)](https://javadoc.io/doc/de.m3y.hadoop.hdfs.hfsa/hfsa-lib)
 
 ### Intro
 
