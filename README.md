@@ -30,28 +30,30 @@ new FsVisitor.Builder()
     .parallel()
     .visit(fsimageData, new FsVisitor() {
         @Override
-        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+        public void onFile(FsImageFile fsImageFile) {
             // Do something
-            String fileName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
-            System.out.println(fileName);
-            FsImageProto.INodeSection.INodeFile f = inode.getFile();
-            PermissionStatus p = loader.getPermissionStatus(f.getPermission());
+            String absolutePath = fsImageFile.getPath();
+            System.out.println(absolutePath);
+            System.out.println(fsImageFile.getUser());
+            System.out.println(fsImageFile.getGroup())
+            System.out.println(fsImageFile.getPermission());
             ...
         }
              
         @Override
-        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+        public void onDirectory(FsImageDir fsImageDir) {
             // Do something
-            final String dirName = ("/".equals(path) ? path : path + '/') + inode.getName().toStringUtf8();
-            System.out.println("Directory : " + fileName);
-            
-            FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-            PermissionStatus p = loader.getPermissionStatus(d.getPermission());
+            String absolutePath = fsImageDir.getPath();
+            System.out.println("Directory : " + absolutePath);
+
+            System.out.println(fsImageDir.getUser());
+            System.out.println(fsImageDir.getGroup())
+            System.out.println(fsImageDir.getPermission());
             ...
         }
              
         @Override
-        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+        public void onSymLink(FsImageSymlink fsImageSymlink) {
             // Do something
         }
     }
