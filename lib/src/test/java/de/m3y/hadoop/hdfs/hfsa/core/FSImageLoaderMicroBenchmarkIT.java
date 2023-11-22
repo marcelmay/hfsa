@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -94,18 +93,18 @@ public class FSImageLoaderMicroBenchmarkIT {
         }
 
         @Override
-        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
+        public void onFile(FsImageFile fsImageFile) {
+            blackhole.consume(fsImageFile.getInode());
         }
 
         @Override
-        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
+        public void onDirectory(FsImageDir fsImageDir) {
+            blackhole.consume(fsImageDir.getInode());
         }
 
         @Override
-        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
+        public void onSymLink(FsImageSymLink fsImageSymLink) {
+            blackhole.consume(fsImageSymLink.getInode());
         }
     }
 

@@ -95,9 +95,9 @@ public class FsImageLoaderTest {
         }
 
         @Override
-        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+        public void onFile(FsImageFile fsImageFile) {
             numFiles.getAndIncrement();
-            final FsImageProto.INodeSection.INodeFile file = inode.getFile();
+            final FsImageProto.INodeSection.INodeFile file = fsImageFile.getInode().getFile();
             sumFileSize.getAndAdd(FsUtil.getFileSize(file));
             PermissionStatus p = fsImageData.getPermissionStatus(file.getPermission());
             users.put(p.getGroupName(),"");
@@ -105,17 +105,17 @@ public class FsImageLoaderTest {
         }
 
         @Override
-        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+        public void onDirectory(FsImageDir fsImageDir) {
             numDirs.getAndIncrement();
-            PermissionStatus p = fsImageData.getPermissionStatus(inode.getDirectory().getPermission());
+            PermissionStatus p = fsImageData.getPermissionStatus(fsImageDir.getInode().getDirectory().getPermission());
             users.put(p.getGroupName(),"");
             groups.put(p.getUserName(),"");
         }
 
         @Override
-        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+        public void onSymLink(FsImageSymLink fsImageSymLink) {
             numSymLinks.getAndIncrement();
-            PermissionStatus p = fsImageData.getPermissionStatus(inode.getSymlink().getPermission());
+            PermissionStatus p = fsImageData.getPermissionStatus(fsImageSymLink.getInode().getSymlink().getPermission());
             users.put(p.getGroupName(),"");
             groups.put(p.getUserName(),"");
         }
@@ -130,28 +130,34 @@ public class FsImageLoaderTest {
         }
 
         @Override
-        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-            super.onFile(inode, path);
-
-            final String fileName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
-                    inode.getName().toStringUtf8();
-            LOG.debug(fileName);
-            files.put(fileName,"");
-            paths.put(path,"");
+        public void onFile(FsImageFile fsImageFile) {
+            super.onFile(fsImageFile);
+            String path = fsImageFile.getPath();
+            LOG.debug(path);
+            files.put(path,"");
+            final String folderPath = path.substring(0, path.length() - fsImageFile.getName().length()-1);
+            if (!folderPath.isEmpty()) {
+                paths.put(folderPath,"");
+            }
         }
 
         @Override
-        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-            super.onDirectory(inode, path);
-            final String dirName = (FsImageData.ROOT_PATH.equals(path) ? path : path + '/') +
-                    inode.getName().toStringUtf8();
-            paths.put(dirName,"");
-            LOG.debug(dirName);
+        public void onDirectory(FsImageDir fsImageDir) {
+            super.onDirectory(fsImageDir);
+            final String path = fsImageDir.getPath();
+            if (!path.isEmpty()) {
+                paths.put(path,"");
+            }
+            LOG.debug(path);
         }
 
         @Override
-        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-            super.onDirectory(inode, path);
+        public void onSymLink(FsImageSymLink fsImageSymLink) {
+            numDirs.getAndIncrement();
+            String path = fsImageSymLink.getPath();
+            PermissionStatus p = fsImageData.getPermissionStatus(fsImageSymLink.getInode().getDirectory().getPermission());
+            users.put(p.getGroupName(),"");
+            groups.put(p.getUserName(),"");
             paths.put(path,"");
         }
     }
@@ -395,18 +401,19 @@ public class FsImageLoaderTest {
             AtomicBoolean rootVisited = new AtomicBoolean(false);
             new FsVisitor.Builder().visit(emptyImage, new FsVisitor() {
                 @Override
-                public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+                public void onFile(FsImageFile fsImageFile) {
                     // Nothing
                 }
 
                 @Override
-                public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                public void onDirectory(FsImageDir fsImageDir) {
                     // Nothing
+                    String path = fsImageDir.getPath();
                     rootVisited.set(ROOT_PATH.equals(path));
                 }
 
                 @Override
-                public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                public void onSymLink(FsImageSymLink fsImageSymLink) {
                     // Nothing
                 }
             });

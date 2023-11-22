@@ -3,8 +3,10 @@ package de.m3y.hadoop.hdfs.hfsa.core;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.LongAdder;
 
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
+import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,26 +24,40 @@ public interface FsVisitor {
     /**
      * Invoked for each file.
      *
-     * @param inode the file inode.
-     * @param path  the current path.
+     * @param fsImageFile the file inode entity.
      */
-    void onFile(FsImageProto.INodeSection.INode inode, String path);
+    void onFile(FsImageFile fsImageFile);
 
     /**
      * Invoked for each directory.
      *
-     * @param inode the directory inode.
-     * @param path  the current path.
+     * @param fsImageDir the directory inode entity.
      */
-    void onDirectory(FsImageProto.INodeSection.INode inode, String path);
+    void onDirectory(FsImageDir fsImageDir);
 
     /**
      * Invoked for each sym link.
      *
-     * @param inode the symlink inode.
-     * @param path  the current path.
+     * @param fsImageSymLink the symlink inode entity.
      */
-    void onSymLink(FsImageProto.INodeSection.INode inode, String path);
+    void onSymLink(FsImageSymLink fsImageSymLink);
+
+    /**
+     * Contains statistic information of a folder inode.
+     */
+    class Summary {
+        public final LongAdder totalFileNum;
+        public final LongAdder totalFileByte;
+
+        public Summary(LongAdder totalFileNum, LongAdder totalFileByte) {
+            this.totalFileNum = totalFileNum;
+            this.totalFileByte = totalFileByte;
+        }
+        public Summary () {
+            totalFileByte = new LongAdder();
+            totalFileNum = new LongAdder();
+        }
+    }
 
     /**
      * Builds a visitor with single-threaded (default) or parallel execution.
@@ -105,6 +121,7 @@ public interface FsVisitor {
             /**
              * Traverses FS tree, starting at given directory path
              *
+             * @param fsImageData the fsImageDataObject parsed
              * @param visitor the visitor.
              * @param path    the directory path to start with
              * @throws IOException on error.
@@ -112,43 +129,95 @@ public interface FsVisitor {
             public void visit(FsImageData fsImageData, FsVisitor visitor, String path) throws IOException {
                 // Visit path dir
                 FsImageProto.INodeSection.INode pathNode = fsImageData.getINodeFromPath(path);
-                if (ROOT_PATH.equals(path)) {
-                    visitor.onDirectory(pathNode, path);
-                } else {
-                    // Need to strip current node path from path if not "/"
-                    final String substring = path.substring(0, path.length() - pathNode.getName().toStringUtf8().length());
-                    visitor.onDirectory(pathNode, substring);
-                }
-
+                Summary summary = new Summary(new LongAdder(), new LongAdder());
+                FsImageDir fsImageDir = FsUtil.getFsImageDir(pathNode);
+                fsImageDir.setPath(path);
+                fsImageDir.setFatherInodeId(null);
+                final long permissionId = fsImageDir.getPermissionId();
+                PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                fsImageDir.setPermission(permissionStatus.getPermission().toString());
+                fsImageDir.setUser(permissionStatus.getUserName());
+                fsImageDir.setGroup(permissionStatus.getGroupName());
                 // Child dirs?
                 final long pathNodeId = pathNode.getId();
                 final long[] children = fsImageData.getChildINodeIds(pathNodeId);
                 // Visit children
                 for (long cid : children) {
-                    visit(fsImageData, visitor, fsImageData.getInode(cid), path);
+                    Summary subSummery = visit(fsImageData, visitor, fsImageData.getInode(cid), fsImageDir.getPath(), pathNode.getId());
+                    summary.totalFileByte.add(subSummery.totalFileByte.longValue());
+                    summary.totalFileNum.add(subSummery.totalFileNum.longValue());
                 }
+                fsImageDir.setTotalFileNum(summary.totalFileNum.longValue());
+                fsImageDir.setTotalFileByte(summary.totalFileByte.longValue());
+                visitor.onDirectory(fsImageDir);
             }
 
-            void visit(FsImageData fsImageData, FsVisitor visitor, FsImageProto.INodeSection.INode inode, String path) throws IOException {
+            Summary visit(FsImageData fsImageData, FsVisitor visitor, FsImageProto.INodeSection.INode inode, String path, Long fatherInodeId) throws IOException {
+                Summary summary = new Summary(new LongAdder(), new LongAdder());
                 if (FsUtil.isDirectory(inode)) {
-                    visitor.onDirectory(inode, path);
+                    FsImageDir fsImageDir = FsUtil.getFsImageDir(inode);
+                    // path is the current path
+                    if (ROOT_PATH.equals(path)) {
+                        fsImageDir.setPath(ROOT_PATH + fsImageDir.getName());
+                    } else {
+                        fsImageDir.setPath(path + ROOT_PATH + fsImageDir.getName());
+                    }
+                    final long permissionId = fsImageDir.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    fsImageDir.setPermission(permissionStatus.getPermission().toString());
+                    fsImageDir.setUser(permissionStatus.getUserName());
+                    fsImageDir.setGroup(permissionStatus.getGroupName());
+                    fsImageDir.setFatherInodeId(fatherInodeId);
                     final long inodeId = inode.getId();
                     final long[] children = fsImageData.getChildINodeIds(inodeId);
-                    if (children.length>0) {
+                    if (children.length > 0) {
                         String newPath;
                         if (ROOT_PATH.equals(path)) {
                             newPath = path + inode.getName().toStringUtf8();
                         } else {
-                            newPath = path + '/' + inode.getName().toStringUtf8();
+                            newPath = path + FsImageData.PATH_SEPARATOR + inode.getName().toStringUtf8();
                         }
                         for (long cid : children) {
-                            visit(fsImageData, visitor, fsImageData.getInode(cid), newPath);
+                            Summary subSummary = visit(fsImageData, visitor, fsImageData.getInode(cid), newPath, inodeId);
+                            summary.totalFileByte.add(subSummary.totalFileByte.longValue());
+                            summary.totalFileNum.add(subSummary.totalFileNum.longValue());
                         }
                     }
+                    fsImageDir.setTotalFileByte(summary.totalFileByte.longValue());
+                    fsImageDir.setTotalFileNum(summary.totalFileNum.longValue());
+                    visitor.onDirectory(fsImageDir);
+                    return summary;
                 } else if (isFile(inode)) {
-                    visitor.onFile(inode, path);
+                    FsImageFile fsImageFile = FsUtil.getFsImageFile(inode);
+                    final long permissionId = fsImageFile.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    String newPath;
+                    if (ROOT_PATH.equals(path)) {
+                        newPath = path + inode.getName().toStringUtf8();
+                    } else {
+                        newPath = path + FsImageData.PATH_SEPARATOR + inode.getName().toStringUtf8();
+                    }
+                    fsImageFile.setPath(newPath);
+                    fsImageFile.setFatherInodeId(fatherInodeId);
+                    fsImageFile.setPermission(permissionStatus.getPermission().toString());
+                    fsImageFile.setUser(permissionStatus.getUserName());
+                    fsImageFile.setGroup(permissionStatus.getGroupName());
+                    summary.totalFileNum.increment();
+                    summary.totalFileByte.add(fsImageFile.getFileSizeByte());
+                    visitor.onFile(fsImageFile);
+                    return summary;
                 } else if (isSymlink(inode)) {
-                    visitor.onSymLink(inode, path);
+                    FsImageSymLink fsImageSymLink = FsUtil.getFsImageSymLink(inode);
+                    final long permissionId = fsImageSymLink.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    fsImageSymLink.setPermission(permissionStatus.getPermission().toString());
+                    fsImageSymLink.setUser(permissionStatus.getUserName());
+                    fsImageSymLink.setGroup(permissionStatus.getGroupName());
+                    fsImageSymLink.setFatherInodeId(fatherInodeId);
+                    fsImageSymLink.setPath(String.format("%s"+FsImageData.PATH_SEPARATOR+"%s", path, fsImageSymLink.getName()));
+                    visitor.onSymLink(fsImageSymLink);
+                    // it is a link without occupation on file num or file size
+                    return summary;
                 } else {
                     // Should not happen
                     throw new IllegalStateException("Unsupported inode type " + inode.getType() + " for " + inode);
@@ -177,7 +246,16 @@ public interface FsVisitor {
              */
             public void visit(FsImageData fsImageData, FsVisitor visitor, String path) throws IOException {
                 FsImageProto.INodeSection.INode rootNode = fsImageData.getINodeFromPath(path);
-                visitor.onDirectory(rootNode, path);
+                FsImageDir fsImageDir = FsUtil.getFsImageDir(rootNode);
+                // path is the current path
+                fsImageDir.setPath(path);
+                final long permissionId = fsImageDir.getPermissionId();
+                PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                fsImageDir.setPermission(permissionStatus.getPermission().toString());
+                fsImageDir.setUser(permissionStatus.getUserName());
+                fsImageDir.setGroup(permissionStatus.getGroupName());
+                fsImageDir.setFatherInodeId(null);
+                Summary summary = new Summary(new LongAdder(), new LongAdder());
                 final long rootNodeId = rootNode.getId();
                 final long[] children = fsImageData.getChildINodeIds(rootNodeId);
                 if (children.length>0) {
@@ -187,40 +265,94 @@ public interface FsVisitor {
                         if (inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY) {
                             dirs.add(inode);
                         } else {
-                            visit(fsImageData, visitor, inode, path);
+                            Summary subSummary = visit(fsImageData, visitor, inode, path, rootNodeId);
+                            summary.totalFileByte.add(subSummary.totalFileByte.longValue());
+                            summary.totalFileNum.add(subSummary.totalFileNum.longValue());
                         }
                     }
                     // Go over top level dirs in parallel
                     dirs.parallelStream().forEach(inode -> {
                         try {
-                            visit(fsImageData, visitor, inode, path);
+                            Summary subSummary = visit(fsImageData, visitor, inode, path, rootNodeId);
+                            summary.totalFileNum.add(subSummary.totalFileNum.longValue());
+                            summary.totalFileByte.add(subSummary.totalFileByte.longValue());
+
                         } catch (IOException e) {
                             LOG.error("Can not traverse {} : {}", inode.getId(), inode.getName().toStringUtf8(), e);
                         }
                     });
                 }
+                fsImageDir.setTotalFileNum(summary.totalFileNum.longValue());
+                fsImageDir.setTotalFileByte(summary.totalFileByte.longValue());
+                visitor.onDirectory(fsImageDir);
             }
 
-            void visit(FsImageData fsImageData, FsVisitor visitor, FsImageProto.INodeSection.INode inode, String path) throws IOException {
+            Summary visit(FsImageData fsImageData, FsVisitor visitor, FsImageProto.INodeSection.INode inode, String path, Long fatherInodeId) throws IOException {
+                Summary summary = new Summary(new LongAdder(), new LongAdder());
                 if (FsUtil.isDirectory(inode)) {
-                    visitor.onDirectory(inode, path);
                     final long inodeId = inode.getId();
                     final long[] children = fsImageData.getChildINodeIds(inodeId);
-                    if (children.length > 0) {
+                    FsImageDir fsImageDir = FsUtil.getFsImageDir(inode);
+                    // path is the current path
+                    if (ROOT_PATH.equals(path)) {
+                        fsImageDir.setPath(ROOT_PATH + fsImageDir.getName());
+                    } else {
+                        fsImageDir.setPath(path + ROOT_PATH + fsImageDir.getName());
+                    }
+                    long permissionId = fsImageDir.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    fsImageDir.setPermission(permissionStatus.getPermission().toString());
+                    fsImageDir.setUser(permissionStatus.getUserName());
+                    fsImageDir.setGroup(permissionStatus.getGroupName());
+                    fsImageDir.setFatherInodeId(fatherInodeId);
+                    if (children.length>0) {
                         String newPath;
                         if (ROOT_PATH.equals(path)) {
                             newPath = path + inode.getName().toStringUtf8();
                         } else {
-                            newPath = path + '/' + inode.getName().toStringUtf8();
+                            newPath = path + FsImageData.PATH_SEPARATOR + inode.getName().toStringUtf8();
                         }
                         for (long cid : children) {
-                            visit(fsImageData, visitor, fsImageData.getInode(cid), newPath);
+                            Summary subSummary = visit(fsImageData, visitor, fsImageData.getInode(cid), newPath, inodeId);
+                            summary.totalFileByte.add(subSummary.totalFileByte.longValue());
+                            summary.totalFileNum.add(subSummary.totalFileNum.longValue());
                         }
                     }
+                    fsImageDir.setTotalFileByte(summary.totalFileByte.longValue());
+                    fsImageDir.setTotalFileNum(summary.totalFileNum.longValue());
+                    visitor.onDirectory(fsImageDir);
+                    return summary;
                 } else if (isFile(inode)) {
-                    visitor.onFile(inode, path);
+                    FsImageFile fsImageFile = FsUtil.getFsImageFile(inode);
+                    long permissionId = fsImageFile.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    String newPath;
+                    if (ROOT_PATH.equals(path)) {
+                        newPath = path + inode.getName().toStringUtf8();
+                    } else {
+                        newPath = path + FsImageData.PATH_SEPARATOR + inode.getName().toStringUtf8();
+                    }
+                    fsImageFile.setPath(newPath);
+                    fsImageFile.setFatherInodeId(fatherInodeId);
+                    fsImageFile.setPermission(permissionStatus.getPermission().toString());
+                    fsImageFile.setUser(permissionStatus.getUserName());
+                    fsImageFile.setGroup(permissionStatus.getGroupName());
+                    summary.totalFileNum.increment();
+                    summary.totalFileByte.add(fsImageFile.getFileSizeByte());
+                    visitor.onFile(fsImageFile);
+                    return summary;
                 } else if (isSymlink(inode)) {
-                    visitor.onSymLink(inode, path);
+                    FsImageSymLink fsImageSymLink = FsUtil.getFsImageSymLink(inode);
+                    long permissionId = fsImageSymLink.getPermissionId();
+                    PermissionStatus permissionStatus = fsImageData.getPermissionStatus(permissionId);
+                    fsImageSymLink.setPermission(permissionStatus.getPermission().toString());
+                    fsImageSymLink.setUser(permissionStatus.getUserName());
+                    fsImageSymLink.setGroup(permissionStatus.getGroupName());
+                    fsImageSymLink.setFatherInodeId(fatherInodeId);
+                    fsImageSymLink.setPath(String.format("%s"+FsImageData.PATH_SEPARATOR+"%s", path, fsImageSymLink.getName()));
+                    visitor.onSymLink(fsImageSymLink);
+                    // it is a link without occupation on file num or file size
+                    return summary;
                 } else {
                     throw new IllegalStateException("Unsupported inode type " + inode.getType() + " for " + inode);
                 }

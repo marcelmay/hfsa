@@ -1,5 +1,8 @@
 package de.m3y.hadoop.hdfs.hfsa.util;
 
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageDir;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageFile;
+import de.m3y.hadoop.hdfs.hfsa.core.FsImageSymLink;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
@@ -97,4 +100,67 @@ public class FsUtil {
         }
         return size;
     }
+
+    /**
+     * Extracts the file information in an Inode
+     * @param inode the inode
+     * @return instance of FsImageFile if inode is a File else null
+     */
+    public static FsImageFile getFsImageFile(FsImageProto.INodeSection.INode inode) {
+        FsImageFile fsImageFile = new FsImageFile();
+        fsImageFile.setInode(inode);
+        FsImageProto.INodeSection.INodeFile file = inode.getFile();
+        fsImageFile.setAccessTime(file.getAccessTime());
+        fsImageFile.setBlocksCount(file.getBlocksCount());
+        fsImageFile.setReplication(file.getReplication());
+        fsImageFile.setBlockType(file.getBlockType().name());
+        fsImageFile.setPreferredBlockSize(file.getPreferredBlockSize());
+        fsImageFile.setStoragePolicyId(file.getStoragePolicyID());
+        fsImageFile.setModificationTime(file.getModificationTime());
+        fsImageFile.setInodeId(inode.getId());
+        fsImageFile.setName(inode.getName().toStringUtf8());
+        fsImageFile.setPermissionId(file.getPermission());
+        fsImageFile.setFileSizeByte(FsUtil.getFileSize(file));
+        // path, fatherInodeId, user, group, permission, fsImageId to be set
+        return fsImageFile;
+    }
+
+    /**
+     * Extracts the directory information in an Inode
+     * @param inode inode of directory
+     * @return an instance of FsImageDir
+     */
+    public static FsImageDir getFsImageDir(FsImageProto.INodeSection.INode inode) {
+        org.apache.hadoop.hdfs.server.namenode.FsImageProto.INodeSection.INodeDirectory iNodeDirectory = inode.getDirectory();
+        FsImageDir fsImageDir = new FsImageDir();
+        fsImageDir.setInode(inode);
+        fsImageDir.setName(inode.getName().toStringUtf8());
+        fsImageDir.setDataSpaceQuota(iNodeDirectory.getDsQuota());
+        fsImageDir.setNameSpaceQuota(iNodeDirectory.getNsQuota());
+        fsImageDir.setPermissionId(iNodeDirectory.getPermission());
+        fsImageDir.setModificationTime(iNodeDirectory.getModificationTime());
+        // path, fatherInodeId, user, group, permission, fsImageId, totalFileNum, totalFileByte to be set
+        return fsImageDir;
+    }
+
+    /**
+     * Extracts the symbol link information in an Inode
+     * @param inode inode of symbol link
+     * @return an instance of FsImageSynLink
+     */
+    public static FsImageSymLink getFsImageSymLink(FsImageProto.INodeSection.INode inode) {
+        FsImageProto.INodeSection.INodeSymlink inodeSymlink = inode.getSymlink();
+        FsImageSymLink fsImageSymLink = new FsImageSymLink();
+        fsImageSymLink.setInode(inode);
+        fsImageSymLink.setTarget(inodeSymlink.getTarget());
+        fsImageSymLink.setSerializedSize(inodeSymlink.getSerializedSize());
+        fsImageSymLink.setAccessTime(inodeSymlink.getAccessTime());
+        fsImageSymLink.setInodeId(inode.getId());
+        fsImageSymLink.setPermissionId(inodeSymlink.getPermission());
+        fsImageSymLink.setModificationTime(inodeSymlink.getModificationTime());
+        fsImageSymLink.setName(inode.getName().toStringUtf8());
+        // path, fatherInodeId,user, group, permission, fsImageId
+        return fsImageSymLink;
+    }
+
 }

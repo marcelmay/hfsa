@@ -332,4 +332,14 @@ public class FsImageData {
         }
         return  pathWithoutDoubleSlashes;
     }
+
+    /**
+     * Gets the permission of a long value.
+     *
+     * @param permissionId the permission id of inode
+     * @return string representation of the permission.
+     */
+    public String getPermissionString(long permissionId) {
+        return FSImageFormatPBINode.Loader.loadPermission(permissionId, stringTable).getPermission().toString();
+    }
 }
