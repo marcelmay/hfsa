@@ -12,12 +12,8 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
-import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
-import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
+import de.m3y.hadoop.hdfs.hfsa.core.*;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
-import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
 
 /**
@@ -167,24 +163,22 @@ public class UserUsageReportCommand extends AbstractReportCommand {
         try {
             FsVisitor visitor = new FsVisitor() {
                 @Override
-                public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                    FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                    if (f.getModificationTime() < minAge) {
-                        PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
-                        if (user.equalsIgnoreCase(p.getUserName())) {
-                            final long fileSizeBytes = FsUtil.getFileSize(f);
-                            report.increment(path, fileSizeBytes);
+                public void onFile(FsImageFile fsImageFile) {
+                    if (fsImageFile.getModificationTime() < minAge) {
+                        if (user.equalsIgnoreCase(fsImageFile.getUser())) {
+                            final long fileSizeBytes = fsImageFile.getFileSizeByte();
+                            report.increment(fsImageFile.getPath(), fileSizeBytes);
                         }
                     }
                 }
 
                 @Override
-                public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                public void onDirectory(FsImageDir fsImageDir) {
                     // Not needed
                 }
 
                 @Override
-                public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                public void onSymLink(FsImageSymLink fsImageSymLink) {
                     // Not needed
                 }
             };

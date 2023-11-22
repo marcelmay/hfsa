@@ -7,12 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
-import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
-import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
+import de.m3y.hadoop.hdfs.hfsa.core.*;
 import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
-import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
 
 /**
@@ -238,13 +234,9 @@ class SummaryReportCommand extends AbstractReportCommand {
 
         final FsVisitor visitor = new FsVisitor() {
             @Override
-            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                FsImageProto.INodeSection.INodeFile f = inode.getFile();
-
-                PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
-
-                final long fileSize = FsUtil.getFileSize(f);
-                final long fileBlocks = f.getBlocksCount();
+            public void onFile(FsImageFile fsImageFile) {
+               final long fileSize = fsImageFile.getFileSizeByte();
+                final long fileBlocks = fsImageFile.getBlocksCount();
                 synchronized (overallStats) {
                     overallStats.fileSizeBuckets.add(fileSize);
                     overallStats.sumBlocks += fileBlocks;
@@ -253,7 +245,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 }
 
                 // Group stats
-                final String groupName = p.getGroupName();
+                final String groupName = fsImageFile.getGroup();
                 final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                 synchronized (groupStat) {
                     groupStat.sumFiles++;
@@ -263,7 +255,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 }
 
                 // User stats
-                final String userName = p.getUserName();
+                final String userName = fsImageFile.getUser();
                 final UserStats userStat = report.getOrCreateUserStats(userName);
                 synchronized (userStat) {
                     userStat.sumFiles++;
@@ -274,17 +266,14 @@ class SummaryReportCommand extends AbstractReportCommand {
             }
 
             @Override
-            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-                FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                PermissionStatus p = fsImageData.getPermissionStatus(d.getPermission());
-
+            public void onDirectory(FsImageDir fsImageDir) {
                 // Group stats
-                final String groupName = p.getGroupName();
+                final String groupName = fsImageDir.getGroup();
                 final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                 groupStat.sumDirectories.increment();
 
                 // User stats
-                final String userName = p.getUserName();
+                final String userName = fsImageDir.getUser();
                 final UserStats userStat = report.getOrCreateUserStats(userName);
                 userStat.sumDirectories.increment();
 
@@ -292,17 +281,14 @@ class SummaryReportCommand extends AbstractReportCommand {
             }
 
             @Override
-            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-                final FsImageProto.INodeSection.INodeSymlink symlink = inode.getSymlink();
-                PermissionStatus p = fsImageData.getPermissionStatus(symlink.getPermission());
-
+            public void onSymLink(FsImageSymLink fsImageSymLink) {
                 // Group stats
-                final String groupName = p.getGroupName();
+                final String groupName = fsImageSymLink.getGroup();
                 final GroupStats groupStat = report.getOrCreateGroupStats(groupName);
                 groupStat.sumSymLinks.increment();
 
                 // User stats
-                final String userName = p.getUserName();
+                final String userName = fsImageSymLink.getUser();
                 final UserStats userStat = report.getOrCreateUserStats(userName);
                 userStat.sumSymLinks.increment();
 

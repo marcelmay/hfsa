@@ -9,10 +9,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
-import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
-import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto.INodeSection.INode;
+import de.m3y.hadoop.hdfs.hfsa.core.*;
 import picocli.CommandLine;
 
 /**
@@ -27,11 +24,15 @@ import picocli.CommandLine;
 public class PathReportCommand extends AbstractReportCommand {
 
     static class Result {
-        final long permission; // user, group, FS permissions
+        final String user;
+        final String group;
+        final String permission;
         final String path;
         final char iNodeType;
 
-        Result(long permission, String path, char iNodeType) {
+        Result(String user, String group, String permission, String path, char iNodeType) {
+            this.user = user;
+            this.group = group;
             this.permission = permission;
             this.path = path;
             this.iNodeType = iNodeType;
@@ -55,35 +56,38 @@ public class PathReportCommand extends AbstractReportCommand {
         }
 
         @Override
-        public void onFile(INode inode, String path) {
-            onInode(inode, path);
+        public void onFile(FsImageFile fsImageFile) {
+            onFsImageInfo(fsImageFile);
         }
 
         @Override
-        public void onDirectory(INode inode, String path) {
-            onInode(inode, path);
+        public void onDirectory(FsImageDir fsImageDir) {
+            onFsImageInfo(fsImageDir);
         }
 
         @Override
-        public void onSymLink(INode inode, String path) {
-            onInode(inode, path);
+        public void onSymLink(FsImageSymLink fsImageSymLink) {
+            onFsImageInfo(fsImageSymLink);
         }
 
-        private void onInode(INode iNode, String path) {
-            if (predicate.test(iNode, path)) {
-                final String iNodeName = iNode.getName().toStringUtf8();
-                final String absolutPath = path.length() > 1 ? path + '/' + iNodeName : path + iNodeName;
+        private void onFsImageInfo(FsImageInfo fsImageInfo) {
+            String path  = fsImageInfo.getPath();
+            if (predicate.test(fsImageInfo)) {
                 char iNodeType = '-';
-                if (iNode.hasFile()) {
+                if (fsImageInfo instanceof FsImageFile) {
                     fileCount.increment();
-                } else if (iNode.hasDirectory()) {
+                } else if (fsImageInfo instanceof FsImageDir) {
                     iNodeType = 'd';
                     dirCount.increment();
-                } else if (iNode.hasSymlink()) {
+                } else if (fsImageInfo instanceof FsImageSymLink) {
                     iNodeType = 'l';
                     symLinkCount.increment();
                 }
-                results.add(new Result(fsImageData.getPermission(iNode), absolutPath, iNodeType));
+
+                results.add(
+                        new Result(fsImageInfo.getUser(), fsImageInfo.getGroup(), fsImageInfo.getPermission(),
+                                path, iNodeType)
+                );
             }
         }
     }
@@ -98,7 +102,7 @@ public class PathReportCommand extends AbstractReportCommand {
 
     @FunctionalInterface
     public interface INodePredicate {
-        boolean test(INode iNode, String path);
+        boolean test(FsImageInfo fsImageInfo);
     }
 
     private void createReport(FsImageData fsImageData) {
@@ -113,15 +117,15 @@ public class PathReportCommand extends AbstractReportCommand {
                     }
 
                     @Override
-                    public boolean test(INode iNode, String path) {
-                        final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(iNode);
-                        return userPattern.matcher(permissionStatus.getUserName()).matches();
+                    public boolean test(FsImageInfo fsImageInfo) {
+                        final String user = fsImageInfo.getUser();
+                        return userPattern.matcher(user).matches();
                     }
                 };
             } else {
                 predicate = new INodePredicate() {
                     @Override
-                    public boolean test(INode iNode, String path) {
+                    public boolean test(FsImageInfo fsImageInfo) {
                         return true;
                     }
 
@@ -158,22 +162,20 @@ public class PathReportCommand extends AbstractReportCommand {
             int maxUserNameLength = 0;
             int maxGroupNameLength = 0;
             for (Result result : visitor.results) {
-                final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
-                maxUserNameLength = Math.max(maxUserNameLength, permissionStatus.getUserName().length());
-                maxGroupNameLength = Math.max(maxGroupNameLength, permissionStatus.getGroupName().length());
+                maxUserNameLength = Math.max(maxUserNameLength, result.user.length());
+                maxGroupNameLength = Math.max(maxGroupNameLength, result.group.length());
             }
 
             for (Result result : visitor.results) {
                 StringBuilder buf = new StringBuilder();
-                final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
                 buf.append(result.iNodeType);
-                buf.append(permissionStatus.getPermission().toString());
+                buf.append(result.permission);
                 buf.append(' ');
-                buf.append(permissionStatus.getUserName());
-                FormatUtil.padRight(buf, ' ', maxUserNameLength - permissionStatus.getUserName().length());
+                buf.append(result.user);
+                FormatUtil.padRight(buf, ' ', maxUserNameLength - result.user.length());
                 buf.append(' ');
-                buf.append(permissionStatus.getGroupName());
-                FormatUtil.padRight(buf, ' ', maxGroupNameLength - permissionStatus.getGroupName().length());
+                buf.append(result.group);
+                FormatUtil.padRight(buf, ' ', maxGroupNameLength - result.group.length());
 
                 buf.append(' ');
                 buf.append(result.path);

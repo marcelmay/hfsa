@@ -11,12 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
-import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
-import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
+import de.m3y.hadoop.hdfs.hfsa.core.*;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
-import org.apache.hadoop.fs.permission.PermissionStatus;
-import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
 
 /**
@@ -245,25 +241,25 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         try {
             FsVisitor visitor = new FsVisitor() {
                 @Override
-                public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-                    FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                    final long fileSizeBytes = FsUtil.getFileSize(f);
+                public void onFile(FsImageFile fsImageFile) {
+                    final long fileSizeBytes = fsImageFile.getFileSizeByte();
+                    String user = fsImageFile.getUser();
+                    String path = fsImageFile.getPath();
                     if (fileSizeBytes < fileSizeLimitBytes) {
-                        PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
-                        if (userNameFilter.test(p.getUserName())) {
-                            report.getOrCreateUserReport(p.getUserName()).increment(path);
+                        if (userNameFilter.test(user)) {
+                            report.getOrCreateUserReport(user).increment(path);
                         }
                         report.increment(path);
                     }
                 }
 
                 @Override
-                public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                public void onDirectory(FsImageDir fsImageDir) {
                     // Not needed
                 }
 
                 @Override
-                public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                public void onSymLink(FsImageSymLink fsImageSymLink) {
                     // Not needed
                 }
             };
