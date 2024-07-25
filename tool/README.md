@@ -8,7 +8,7 @@ The HFSA tool provides a summary overview of the HDFS data files and directories
 ### Installation
 
 1. Download [distribution](https://repo1.maven.org/maven2/de/m3y/hadoop/hdfs/hfsa/hfsa-tool/)
-    1. Select latest version folder
+    1. Select the latest version folder
     2. Download hfsa-tool-<VERSION>-bin.zip archive
 2. Unpack archive
 3. Run command  

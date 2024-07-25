@@ -49,7 +49,7 @@ import static org.apache.hadoop.hdfs.server.namenode.SerialNumberManager.StringT
 import static org.apache.hadoop.hdfs.server.namenode.SerialNumberManager.newStringTable;
 
 /**
- * FSImageLoader loads fsimage and provide methods to return
+ * FSImageLoader loads fsimage and provides methods to return
  * file status of the namespace of the fsimage.
  * <p>
  * Note: This class is based on the original FSImageLoader from Hadoop:
@@ -100,7 +100,7 @@ public class FsImageLoader {
     }
 
     /**
-     * Implementation of INode repository using array of bytes.
+     * Implementation of INode repository using an array of bytes.
      */
     static class PrimitiveArrayINodesRepository implements INodesRepository {
         private static final Parser<INode> INODE_PARSER = INode.parser();

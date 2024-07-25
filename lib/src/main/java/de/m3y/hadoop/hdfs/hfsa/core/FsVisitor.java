@@ -92,7 +92,7 @@ public interface FsVisitor {
         public static class FsVisitorDefaultStrategy implements FsVisitorStrategy {
 
             /**
-             * Traverses FS tree, starting at root ("{@value FsImageData#ROOT_PATH}").
+             * Traverses the FS tree, starting at root ("{@value FsImageData#ROOT_PATH}").
              *
              * @param fsImageData the FSImage data.
              * @param visitor     the visitor.
@@ -103,7 +103,7 @@ public interface FsVisitor {
             }
 
             /**
-             * Traverses FS tree, starting at given directory path
+             * Traverses the FS tree, starting at the given directory path
              *
              * @param visitor the visitor.
              * @param path    the directory path to start with
@@ -169,7 +169,7 @@ public interface FsVisitor {
             }
 
             /**
-             * Traverses FS tree, using Java parallel stream.
+             * Traverses the FS tree, using Java parallel stream.
              *
              * @param visitor the visitor.
              * @param path    the directory path to start with

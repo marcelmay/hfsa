@@ -41,7 +41,7 @@ public class FsImageData {
      *
      * @param path the directory path.
      * @return a list of file inodes, or an empty list.
-     * @throws IOException on error, e.g. FileNotFoundException if path does not exist
+     * @throws IOException on error, e.g. FileNotFoundException if the path does not exist
      */
     public List<FsImageProto.INodeSection.INode> getFileINodesInDirectory(String path) throws IOException {
         final FsImageProto.INodeSection.INode nodeId = getINodeFromPath(path);
@@ -140,7 +140,7 @@ public class FsImageData {
      *
      * @param path the parent directory path.
      * @return the list of child directory paths.
-     * @throws IOException on error, e.g. FileNotFoundException if path does not exist.
+     * @throws IOException on error, e.g. FileNotFoundException if the path does not exist.
      */
     public List<String> getChildDirectories(String path) throws IOException {
         return getChildDirectories(path,childName -> true );
@@ -188,7 +188,7 @@ public class FsImageData {
     }
 
     /**
-     * Checks if directory INode has any children (dirs, files , links).
+     * Checks if directory INode has any children (dirs, files, links).
      *
      * @param nodeId the node id.
      * @return true, if child inodes exist.
@@ -277,7 +277,7 @@ public class FsImageData {
     }
 
     /**
-     * Returns the INode id of the specified path, or if not found throws FileNotFoundException.
+     * Returns the INode id of the specified path, or if not found, throws FileNotFoundException.
      *
      * @param path the path.
      * @return the inode id.
@@ -290,7 +290,7 @@ public class FsImageData {
      * Loads the permission status
      *
      * @param permission the permission.
-     * @return the  permission status.
+     * @return the permission status.
      */
     public PermissionStatus getPermissionStatus(long permission) {
         return FSImageFormatPBINode.Loader.loadPermission(permission, stringTable);

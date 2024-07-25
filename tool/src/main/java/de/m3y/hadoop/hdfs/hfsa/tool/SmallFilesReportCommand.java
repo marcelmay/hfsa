@@ -194,7 +194,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         out.println();
 
         // Details including top directory small files hotspots.
-        // Free memory of user reports not in hotspot list.
+        // Free memory of user reports not in the hotspot list.
         userReports.subList(Math.min(hotspotsLimit, userReports.size()), userReports.size()).clear();
 
         final String hotspotLabel = "Small files hotspots (top " + hotspotsLimit + " count/path)";

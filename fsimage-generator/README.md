@@ -2,7 +2,7 @@
 
 Generates an FSImage file (via MiniDFSCluster) containing directories and files for testing and benching.
 
-See [FsImageGenerator](src/main/java/de/m3y/hadoop/hdfs/hfsa/generator/FsImageGenerator.java) for details (directory depth, files per directory etc.)
+See [FsImageGenerator](src/main/java/de/m3y/hadoop/hdfs/hfsa/generator/FsImageGenerator.java) for details (directory depth, files per directory, etc.)
 
 ### Building
 ```

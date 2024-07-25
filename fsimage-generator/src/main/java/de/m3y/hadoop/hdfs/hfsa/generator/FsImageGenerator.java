@@ -100,7 +100,7 @@ public class FsImageGenerator {
                     // Fill directory with some files
                     for (int i = 0; i < ABC.length(); i++) {
                         for (int c = 0; c < filesPerDirectoryFactor; c++) {
-                            final Path filePath = new Path(path, "" + ABC.charAt(i) + "_" + c);
+                            final Path filePath = new Path(path, ABC.charAt(i) + "_" + c);
                             dfs.create(filePath, fsPermission, createFlags, fileBufferSize, fileReplication,
                                     fileBlockSize, null, null).close();
                             fileCounter++;

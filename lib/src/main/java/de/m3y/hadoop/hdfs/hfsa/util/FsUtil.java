@@ -49,7 +49,7 @@ public class FsUtil {
     }
 
     /**
-     * Gets the file replication honouring erasure coding.
+     * Gets the file replication honoring erasure coding.
      *
      * @param file the file
      * @return the replication
