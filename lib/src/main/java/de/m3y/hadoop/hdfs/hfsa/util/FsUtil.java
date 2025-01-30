@@ -2,6 +2,8 @@ package de.m3y.hadoop.hdfs.hfsa.util;
 
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
+import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
+import org.apache.hadoop.hdfs.protocol.SystemErasureCodingPolicies;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockStoragePolicySuite;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
@@ -63,6 +65,7 @@ public class FsUtil {
 
     /**
      * Formats the permission as octal.
+     *
      * @param permission the permission.
      * @return the formatted octal value.
      */
@@ -94,6 +97,28 @@ public class FsUtil {
         long size = 0;
         for (HdfsProtos.BlockProto p : file.getBlocksList()) {
             size += p.getNumBytes();
+        }
+        return size;
+    }
+
+    /**
+     * Computes the consumed file size for all blocks.
+     *
+     * @param file the file.
+     * @return the consumed size in bytes.
+     */
+    public static long getConsumedFileSize(FsImageProto.INodeSection.INodeFile file) {
+        long size = 0;
+        if (file.hasErasureCodingPolicyID()) {
+            ErasureCodingPolicy ecp = SystemErasureCodingPolicies.getByID((byte) file.getErasureCodingPolicyID());
+            for (HdfsProtos.BlockProto p : file.getBlocksList()) {
+                size += p.getNumBytes();
+                double cells = Math.ceil((double) p.getNumBytes() / ecp.getCellSize()); // count of cells
+                long rows = (long) Math.ceil(cells / ecp.getNumDataUnits()); // count group of cells (rows)
+                size += rows * ecp.getNumParityUnits() * ecp.getCellSize();
+            }
+        } else {
+            size = getFileSize(file) * file.getReplication();
         }
         return size;
     }

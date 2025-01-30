@@ -1,12 +1,5 @@
 package de.m3y.hadoop.hdfs.hfsa.tool;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.regex.Pattern;
-
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
@@ -14,6 +7,13 @@ import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.regex.Pattern;
 
 /**
  * Computes a user/group file system summary
@@ -32,6 +32,7 @@ class SummaryReportCommand extends AbstractReportCommand {
         final LongAdder sumSymLinks = new LongAdder();
         long sumBlocks;
         long sumFileSize;
+        long sumConsumedFileSize;
         final SizeBucket fileSizeBuckets;
 
         static final Comparator<AbstractStats> COMPARATOR_BLOCKS = Comparator.comparingLong(o -> o.sumBlocks);
@@ -129,6 +130,9 @@ class SummaryReportCommand extends AbstractReportCommand {
                     "(default: ${DEFAULT-VALUE}). ")
     SortOption sort = SortOption.fs;
 
+    @CommandLine.Option(names = {"-m", "--map"}, description = "ErasureCoding map id to crcCount", required = false)
+    Map<Integer, Integer> ecMap;
+
     @Override
     public void run() {
         final FsImageData fsImageData = loadFsImage();
@@ -167,16 +171,16 @@ class SummaryReportCommand extends AbstractReportCommand {
         final String bucketHeader = String.format(bucketFormatHeader, (Object[]) bucketUnits);
 
         out.println(
-                "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | #Blocks   | File Size Buckets ");
+                "#Groups  | #Users      | #Directories | #Symlinks |  #Files     | Size [MB] | CSize[MB] | #Blocks   | File Size Buckets ");
         String header2ndLine =
-                "         |             |              |           |             |           |           | " + bucketHeader;
+                "         |             |              |           |             |           |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
 
-        out.printf("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %s%n",
+        out.printf("%8d | %11d | %12d | %9d | %10d | %9d | %9d | %9d | %s%n",
                 report.groupStats.size(), report.userStats.size(),
                 overallStats.sumDirectories.longValue(), overallStats.sumSymLinks.longValue(),
-                overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L,
+                overallStats.sumFiles, overallStats.sumFileSize / 1024L / 1024L, overallStats.sumConsumedFileSize / 1024L / 1024L,
                 overallStats.sumBlocks,
                 String.format(bucketFormatValue,
                         FormatUtil.boxAndPadWithZeros(maxLength.length, overallStats.fileSizeBuckets.get()))
@@ -185,16 +189,16 @@ class SummaryReportCommand extends AbstractReportCommand {
 
         // Groups
         out.printf(
-                "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets%n",
+                "By group:     %8d | #Directories | #SymLinks | #File      | Size [MB] | CSize[MB] | #Blocks   | File Size Buckets%n",
                 report.groupStats.size());
         header2ndLine = "     " +
-                "                  |              |           |            |           |           | " + bucketHeader;
+                "                  |              |           |            |           |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (GroupStats stat : sortStats(report.groupStats.values(), sort.getComparator())) {
-            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %s%n",
+            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %9d | %s%n",
                     stat.groupName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
-                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L, stat.sumConsumedFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
                             FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
@@ -205,16 +209,16 @@ class SummaryReportCommand extends AbstractReportCommand {
         out.println();
         final List<UserStats> userStats = filterByUserName(report.userStats.values(), mainCommand.userNameFilter);
         out.printf(
-                "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | #Blocks   | File Size Buckets%n",
+                "By user:      %8d | #Directories | #SymLinks | #File      | Size [MB] | CSize[MB] | #Blocks   | File Size Buckets%n",
                 userStats.size());
         header2ndLine = "     " +
-                "                  |              |           |            |           |           | " + bucketHeader;
+                "                  |              |           |            |           |           |           | " + bucketHeader;
         out.println(header2ndLine);
         out.println(FormatUtil.padRight('-', header2ndLine.length()));
         for (UserStats stat : sortStats(userStats, sort.getComparator())) {
-            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %s%n",
+            out.printf("%22s |   %10d | %9d | %10d | %9d | %9d | %9d | %s%n",
                     stat.userName, stat.sumDirectories.longValue(), stat.sumSymLinks.longValue(),
-                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L,
+                    stat.sumFiles, stat.sumFileSize / 1024L / 1024L, stat.sumConsumedFileSize / 1024L / 1024L,
                     stat.sumBlocks,
                     String.format(bucketFormatValue,
                             FormatUtil.boxAndPadWithZeros(maxLength.length, stat.fileSizeBuckets.get()))
@@ -244,11 +248,13 @@ class SummaryReportCommand extends AbstractReportCommand {
                 PermissionStatus p = fsImageData.getPermissionStatus(f.getPermission());
 
                 final long fileSize = FsUtil.getFileSize(f);
+                final long consumedSize = FsUtil.getConsumedFileSize(f);
                 final long fileBlocks = f.getBlocksCount();
                 synchronized (overallStats) {
                     overallStats.fileSizeBuckets.add(fileSize);
                     overallStats.sumBlocks += fileBlocks;
                     overallStats.sumFileSize += fileSize;
+                    overallStats.sumConsumedFileSize += consumedSize;
                     overallStats.sumFiles++;
                 }
 
@@ -258,6 +264,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 synchronized (groupStat) {
                     groupStat.sumFiles++;
                     groupStat.sumFileSize += fileSize;
+                    groupStat.sumConsumedFileSize += consumedSize;
                     groupStat.fileSizeBuckets.add(fileSize);
                     groupStat.sumBlocks += fileBlocks;
                 }
@@ -268,6 +275,7 @@ class SummaryReportCommand extends AbstractReportCommand {
                 synchronized (userStat) {
                     userStat.sumFiles++;
                     userStat.sumFileSize += fileSize;
+                    userStat.sumConsumedFileSize += consumedSize;
                     userStat.fileSizeBuckets.add(fileSize);
                     userStat.sumBlocks += fileBlocks;
                 }
