@@ -130,9 +130,6 @@ class SummaryReportCommand extends AbstractReportCommand {
                     "(default: ${DEFAULT-VALUE}). ")
     SortOption sort = SortOption.fs;
 
-    @CommandLine.Option(names = {"-m", "--map"}, description = "ErasureCoding map id to crcCount", required = false)
-    Map<Integer, Integer> ecMap;
-
     @Override
     public void run() {
         final FsImageData fsImageData = loadFsImage();
