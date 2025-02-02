@@ -49,7 +49,7 @@ public class IECBinary {
         if (null != unit) {
             for (int i = 0; i < UNITS.length; i++) {
                 if (unit.equalsIgnoreCase(UNITS[i])) {
-                    number *= Math.pow(1024, i);
+                    number *= (long) Math.pow(1024, i);
                     break;
                 }
             }
