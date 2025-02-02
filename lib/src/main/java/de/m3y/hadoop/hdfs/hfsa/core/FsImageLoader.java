@@ -123,14 +123,19 @@ public class FsImageLoader {
             public INodesRepository build(FsImageProto.INodeSection s, InputStream in, long length) throws IOException {
                 long start = System.currentTimeMillis();
                 final byte[][] inodes = new byte[(int) s.getNumInodes()][];
-                for (int i = 0; i < s.getNumInodes(); ++i) {
+                // Check for overflow
+                if (s.getNumInodes() > Integer.MAX_VALUE) {
+                    throw new IOException("Number of inodes " + s.getNumInodes() + " exceeds Integer.MAX_VALUE");
+                }
+                int numInodes = (int) s.getNumInodes(); // Ok to downcast, checked above
+                for (int i = 0; i < numInodes; ++i) {
                     int size = CodedInputStream.readRawVarint32(in.read(), in);
                     byte[] bytes = new byte[size];
                     IOUtils.readFully(in, bytes, 0, size);
                     inodes[i] = bytes;
                 }
                 LOG.debug("Loaded {} inodes [{}ms] of length {} bytes",
-                        s.getNumInodes(), System.currentTimeMillis() - start, length);
+                        numInodes, System.currentTimeMillis() - start, length);
                 start = System.currentTimeMillis();
                 sortINodes(inodes);
                 LOG.debug("Sorted {} inodes [{}ms]", inodes.length, System.currentTimeMillis() - start);
