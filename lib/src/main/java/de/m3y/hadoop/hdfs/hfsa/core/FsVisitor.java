@@ -98,6 +98,7 @@ public interface FsVisitor {
              * @param visitor     the visitor.
              * @throws IOException on error.
              */
+            @Override
             public void visit(FsImageData fsImageData, FsVisitor visitor) throws IOException {
                 visit(fsImageData, visitor, ROOT_PATH);
             }
@@ -109,6 +110,7 @@ public interface FsVisitor {
              * @param path    the directory path to start with
              * @throws IOException on error.
              */
+            @Override
             public void visit(FsImageData fsImageData, FsVisitor visitor, String path) throws IOException {
                 // Visit path dir
                 FsImageProto.INodeSection.INode pathNode = fsImageData.getINodeFromPath(path);
@@ -159,11 +161,12 @@ public interface FsVisitor {
         public static class FsVisitorParallelStrategy implements FsVisitorStrategy {
 
             /**
-             * Traverses FS tree, using Java parallel stream.
+             * Traverses the FS tree, using Java parallel stream.
              *
              * @param visitor the visitor.
              * @throws IOException on error.
              */
+            @Override
             public void visit(FsImageData fsImageData, FsVisitor visitor) throws IOException {
                 visit(fsImageData, visitor, ROOT_PATH);
             }
@@ -175,6 +178,7 @@ public interface FsVisitor {
              * @param path    the directory path to start with
              * @throws IOException on error.
              */
+            @Override
             public void visit(FsImageData fsImageData, FsVisitor visitor, String path) throws IOException {
                 FsImageProto.INodeSection.INode rootNode = fsImageData.getINodeFromPath(path);
                 visitor.onDirectory(rootNode, path);
