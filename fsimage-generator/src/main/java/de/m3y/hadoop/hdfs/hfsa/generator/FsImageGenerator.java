@@ -124,7 +124,9 @@ public class FsImageGenerator {
                 if (newFsImage.exists()) {
                     Files.delete(newFsImage.toPath());
                 }
-                highestFsImageName.renameTo(newFsImage);
+                if(!highestFsImageName.renameTo(newFsImage)) {
+                    throw new IOException("Can not rename " + highestFsImageName + " to " + newFsImage);
+                }
 
                 LOG.info("Created new FSImage containing meta data for {} directories and {} files (size={})",
                         dirCounter, fileCounter, IECBinary.format(newFsImage.length()));
