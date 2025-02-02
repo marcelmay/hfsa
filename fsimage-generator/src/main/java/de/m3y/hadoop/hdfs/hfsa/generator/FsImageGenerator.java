@@ -116,7 +116,7 @@ public class FsImageGenerator {
                 }
 
                 // Dump FSImage and make backup of file
-                dfs.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_ENTER);
+                dfs.getClient().setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_ENTER);
                 dfs.saveNamespace();
                 final FSImage fsImage = cluster.getNameNode().getFSImage();
                 final File highestFsImageName = fsImage.getStorage().getHighestFsImageName();
