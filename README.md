@@ -81,7 +81,7 @@ mvn clean install
 HFSA is released under the [Apache 2.0 license](LICENSE.txt).
 
 ```
-Copyright 2017-2023 Marcel May and project contributors
+Copyright 2017-2025 Marcel May and project contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
