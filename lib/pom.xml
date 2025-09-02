@@ -64,8 +64,16 @@
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>commons-lang</groupId>
-                    <artifactId>*</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-math3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>com.google.guava</groupId>
@@ -213,8 +221,16 @@
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>commons-lang</groupId>
-                    <artifactId>*</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-math3</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-text</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
@@ -234,10 +250,6 @@
                 </exclusion>
                 <exclusion>
                     <groupId>com.google.code.gson</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
