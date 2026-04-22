@@ -26,16 +26,10 @@ import picocli.CommandLine;
 )
 public class PathReportCommand extends AbstractReportCommand {
 
-    static class Result {
-        final long permission; // user, group, FS permissions
-        final String path;
-        final char iNodeType;
-
-        Result(long permission, String path, char iNodeType) {
-            this.permission = permission;
-            this.path = path;
-            this.iNodeType = iNodeType;
-        }
+    /**
+     * @param permission user, group, FS permissions
+     */
+    record Result(long permission, String path, char iNodeType) {
     }
 
     static class PathVisitor implements FsVisitor {

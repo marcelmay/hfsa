@@ -154,7 +154,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         final List<Map.Entry<String, LongAdder>> topEntries = report.pathToCounter.entrySet().stream()
                 .sorted(comparator.reversed())
                 .limit(hotspotsLimit)
-                .collect(Collectors.toList());
+                .toList();
         String labelCount = "#Small files ";
         int maxWidthSum = Math.max(FormatUtil.numberOfDigits(report.sumOverallSmallFiles), labelCount.length());
         String header = labelCount + " | Path (top " + this.hotspotsLimit + ") ";
@@ -225,7 +225,7 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
         final List<Map.Entry<String, LongAdder>> topEntries = userReport.pathToCounter.entrySet().stream()
                 .sorted(USER_REPORT_ENTRY_COMPARATOR)
                 .limit(hotspotsLimit)
-                .collect(Collectors.toList());
+                .toList();
         String format = "%-" + maxWidthUserName + "." + maxWidthUserName + "s | %" + maxWidthSum + "d | %s%n";
         if (!topEntries.isEmpty()) {
             out.printf(format, userReport.userName, topEntries.get(0).getValue().longValue(), topEntries.get(0).getKey());

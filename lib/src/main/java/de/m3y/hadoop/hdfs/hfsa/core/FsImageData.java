@@ -143,12 +143,13 @@ public class FsImageData {
      * @throws IOException on error, e.g. FileNotFoundException if the path does not exist.
      */
     public List<String> getChildDirectories(String path) throws IOException {
-        return getChildDirectories(path,childName -> true );
+        return getChildDirectories(path, childName -> true);
     }
+
     /**
      * Gets the child directory absolute paths for given path.
      *
-     * @param path the parent directory path.
+     * @param path   the parent directory path.
      * @param filter filters the child directory inode (use e.g.  inode.getName().toStringUtf8() to get name)
      * @return the list of child directory paths.
      * @throws IOException on error, e.g. FileNotFoundException if path does not exist.
@@ -160,7 +161,7 @@ public class FsImageData {
             return Collections.emptyList();
         } else {
             List<String> childPaths = new ArrayList<>();
-            final String pathWithTrailingSlash = path.lastIndexOf(PATH_SEPARATOR)==path.length()-1
+            final String pathWithTrailingSlash = path.lastIndexOf(PATH_SEPARATOR) == path.length() - 1
                     ? path
                     : path + PATH_SEPARATOR;
             for (long cid : children) {
@@ -176,7 +177,7 @@ public class FsImageData {
     /**
      * Checks if directory INode has any children (dirs, files , links).
      * <p>
-     * Note: Slower thant {@link #hasChildren(long)}, as path has to be parsed and loaded.
+     * Note: Slower than {@link #hasChildren(long)}, as path has to be parsed and loaded.
      *
      * @param path the directory path - must exist, or a java.util.NoSuchElementException will be thrown.
      * @return true, if child inodes exist.
@@ -217,18 +218,19 @@ public class FsImageData {
 
     protected List<AclEntry> getAclEntryList(String path) throws IOException {
         FsImageProto.INodeSection.INode inode = getINodeFromPath(path);
-        switch (inode.getType()) {
-            case FILE:
+        return switch (inode.getType()) {
+            case FILE -> {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                return FSImageFormatPBINode.Loader.loadAclEntries(
+                yield FSImageFormatPBINode.Loader.loadAclEntries(
                         f.getAcl(), stringTable);
-            case DIRECTORY:
+            }
+            case DIRECTORY -> {
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                return FSImageFormatPBINode.Loader.loadAclEntries(
+                yield FSImageFormatPBINode.Loader.loadAclEntries(
                         d.getAcl(), stringTable);
-            default:
-                return Collections.emptyList();
-        }
+            }
+            default -> Collections.emptyList();
+        };
     }
 
     /**
@@ -260,20 +262,22 @@ public class FsImageData {
      * @return the numeric permission.
      */
     public long getPermission(FsImageProto.INodeSection.INode inode) {
-        switch (inode.getType()) {
-            case FILE:
+        return switch (inode.getType()) {
+            case FILE -> {
                 FsImageProto.INodeSection.INodeFile f = inode.getFile();
-                return f.getPermission();
-            case DIRECTORY:
+                yield f.getPermission();
+            }
+            case DIRECTORY -> {
                 FsImageProto.INodeSection.INodeDirectory d = inode.getDirectory();
-                return d.getPermission();
-            case SYMLINK:
+                yield d.getPermission();
+            }
+            case SYMLINK -> {
                 FsImageProto.INodeSection.INodeSymlink s = inode.getSymlink();
-                return s.getPermission();
-            default:
-                throw new IllegalStateException("No implementation for getting permission status for type "
-                        + inode.getType().name() +" of INode "+inode);
-        }
+                yield s.getPermission();
+            }
+            default -> throw new IllegalStateException("No implementation for getting permission status for type "
+                    + inode.getType().name() + " of INode " + inode);
+        };
     }
 
     /**
@@ -327,9 +331,9 @@ public class FsImageData {
     static String normalizePath(String path) {
         String pathWithoutDoubleSlashes = DOUBLE_SLASH.matcher(path).replaceAll("/");
         final int length = pathWithoutDoubleSlashes.length();
-        if(length >1 && pathWithoutDoubleSlashes.endsWith("/")) {
-            return pathWithoutDoubleSlashes.substring(0, length -1);
+        if (length > 1 && pathWithoutDoubleSlashes.endsWith("/")) {
+            return pathWithoutDoubleSlashes.substring(0, length - 1);
         }
-        return  pathWithoutDoubleSlashes;
+        return pathWithoutDoubleSlashes;
     }
 }

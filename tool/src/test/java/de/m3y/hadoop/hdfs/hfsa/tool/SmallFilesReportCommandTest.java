@@ -22,31 +22,33 @@ public class SmallFilesReportCommandTest {
             command.mainCommand.err = command.mainCommand.out;
             command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
             command.run();
-            final String expected = "\n" +
-                    "Small files report (< 2 MiB)\n" +
-                    "\n" +
-                    "Overall small files : 3\n" +
-                    "\n" +
-                    "#Small files  | Path (top 10) \n" +
-                    "------------------------------\n" +
-                    "            3 | /\n" +
-                    "            2 | /test3\n" +
-                    "            1 | /test3/foo\n" +
-                    "\n" +
-                    "Username | #Small files | %\n" +
-                    "------------------------------------\n" +
-                    "mm       |            2 | 66.7%\n" +
-                    "root     |            1 | 33.3%\n" +
-                    "\n" +
-                    "Username | Small files hotspots (top 10 count/path)\n" +
-                    "---------------------------------------------------\n" +
-                    "mm       |            2 | /\n" +
-                    "         |            1 | /test3\n" +
-                    "---------------------------------------------------\n" +
-                    "root     |            1 | /\n" +
-                    "         |            1 | /test3\n" +
-                    "         |            1 | /test3/foo\n" +
-                    "---------------------------------------------------\n";
+            final String expected = """
+                    
+                    Small files report (< 2 MiB)
+                    
+                    Overall small files : 3
+                    
+                    #Small files  | Path (top 10)\s
+                    ------------------------------
+                                3 | /
+                                2 | /test3
+                                1 | /test3/foo
+                    
+                    Username | #Small files | %
+                    ------------------------------------
+                    mm       |            2 | 66.7%
+                    root     |            1 | 33.3%
+                    
+                    Username | Small files hotspots (top 10 count/path)
+                    ---------------------------------------------------
+                    mm       |            2 | /
+                             |            1 | /test3
+                    ---------------------------------------------------
+                    root     |            1 | /
+                             |            1 | /test3
+                             |            1 | /test3/foo
+                    ---------------------------------------------------
+                    """;
 
             assertThat(byteArrayOutputStream)
                     .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
@@ -67,29 +69,31 @@ public class SmallFilesReportCommandTest {
 
             command.run();
 
-            final String expected = "\n" +
-                    "Small files report (< 2 MiB)\n" +
-                    "\n" +
-                    "Overall small files         : 3\n" +
-                    "User (filtered) small files : 2\n" +
-                    "\n" +
-                    "#Small files  | Path (top 10) \n" +
-                    "------------------------------\n" +
-                    "            3 | /\n" +
-                    "            2 | /test3\n" +
-                    "            1 | /test3/foo\n" +
-                    "\n" +
-                    "Username | #Small files | %\n" +
-                    "------------------------------------\n" +
-                    "mm       |            2 | 66.7%\n" +
-                    "\n" +
-                    "Username | Small files hotspots (top 10 count/path)\n" +
-                    "---------------------------------------------------\n" +
-                    "mm       |            2 | /\n" +
-                    "         |            1 | /test3\n" +
-                    "---------------------------------------------------\n";
+            final String expected = """
+                    
+                    Small files report (< 2 MiB)
+                    
+                    Overall small files         : 3
+                    User (filtered) small files : 2
+                    
+                    #Small files  | Path (top 10)\s
+                    ------------------------------
+                                3 | /
+                                2 | /test3
+                                1 | /test3/foo
+                    
+                    Username | #Small files | %
+                    ------------------------------------
+                    mm       |            2 | 66.7%
+                    
+                    Username | Small files hotspots (top 10 count/path)
+                    ---------------------------------------------------
+                    mm       |            2 | /
+                             |            1 | /test3
+                    ---------------------------------------------------
+                    """;
             assertThat(byteArrayOutputStream)
-                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR) );
+                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
         }
     }
 }

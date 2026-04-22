@@ -17,10 +17,12 @@ public class HdfsFSImageToolTest {
 
         HdfsFSImageTool.run(new String[]{"-V"});
 
-        Pattern pattern = Pattern.compile("Version 1\\..*\n" +
-                "Build timestamp 20.*\n" +
-                "SCM Version .*\n" +
-                "SCM Branch .*\n");
+        Pattern pattern = Pattern.compile("""
+                Version 1\\..*
+                Build timestamp 20.*
+                SCM Version .*
+                SCM Branch .*
+                """);
         assertThat(byteArrayOutputStream.toString())
                 .matches(pattern);
     }
@@ -34,26 +36,28 @@ public class HdfsFSImageToolTest {
         HdfsFSImageTool.run(new String[]{"-h"});
 
         assertThat(byteArrayOutputStream)
-                .hasToString("Analyze Hadoop FSImage file for user/group reports\n" +
-                        "Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-p=<dirs>[,<dirs>...]]... FILE\n" +
-                        "                 [COMMAND]\n" +
-                        "      FILE        FSImage file to process.\n" +
-                        "      -fun, --filter-by-user=<userNameFilter>\n" +
-                        "                  Filter user name by <regexp>.\n" +
-                        "  -h, --help      Show this help message and exit.\n" +
-                        "  -p, --path=<dirs>[,<dirs>...]\n" +
-                        "                  Directory path(s) to start traversing (default: [/]).\n" +
-                        "                    Default: [/]\n" +
-                        "  -v              Turns on verbose output. Use `-vv` for debug output.\n" +
-                        "  -V, --version   Print version information and exit.\n" +
-                        "Commands:\n" +
-                        "  summary         Generates an HDFS usage summary (default command if no other\n" +
-                        "                    command specified)\n" +
-                        "  smallfiles, sf  Reports on small file usage\n" +
-                        "  inode, i        Shows INode details\n" +
-                        "  path, p         Lists INode paths\n" +
-                        "  userusage, uu   Reports on top usage (e.g. size) locations of a user\n" +
-                        "Runs summary command by default.\n"
+                .hasToString("""
+                        Analyze Hadoop FSImage file for user/group reports
+                        Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-p=<dirs>[,<dirs>...]]... FILE
+                                         [COMMAND]
+                              FILE        FSImage file to process.
+                              -fun, --filter-by-user=<userNameFilter>
+                                          Filter user name by <regexp>.
+                          -h, --help      Show this help message and exit.
+                          -p, --path=<dirs>[,<dirs>...]
+                                          Directory path(s) to start traversing (default: [/]).
+                                            Default: [/]
+                          -v              Turns on verbose output. Use `-vv` for debug output.
+                          -V, --version   Print version information and exit.
+                        Commands:
+                          summary         Generates an HDFS usage summary (default command if no other
+                                            command specified)
+                          smallfiles, sf  Reports on small file usage
+                          inode, i        Shows INode details
+                          path, p         Lists INode paths
+                          userusage, uu   Reports on top usage (e.g. size) locations of a user
+                        Runs summary command by default.
+                        """
 
                 );
     }

@@ -60,7 +60,8 @@ new FsVisitor.Builder()
         
 ### Requirements
 
-- JDK 1.8 (11 recommended for running)
+- JDK 17 (21 recommended for running)  
+  Note: Use hfsa lib version < 1.4 if you need JDK 8 support
 - Hadoop 2.x or 3.x fsimage  
   Note: hfsa lib version 1.2+ has Hadoop 3.x dependencies but still works for Hadoop 2.x fsimages
 - Maven 3.9.x (for building from source)
@@ -81,7 +82,7 @@ mvn clean install
 HFSA is released under the [Apache 2.0 license](LICENSE.txt).
 
 ```
-Copyright 2017-2025 Marcel May and project contributors
+Copyright 2017-2026 Marcel May and project contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

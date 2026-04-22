@@ -59,25 +59,19 @@ public class UserUsageReportCommand extends AbstractReportCommand {
         private long parseAge(String ageOption) {
             Matcher m = PATTERN_AGE.matcher(ageOption);
             if (!m.matches()) {
-                throw new IllegalArgumentException("Expected value of pattern <"+PATTERN_AGE.pattern().replaceAll("[()]","")+">");
+                throw new IllegalArgumentException("Expected value of pattern <" + PATTERN_AGE.pattern().replaceAll("[()]", "") + ">");
             }
             final int groupCount = m.groupCount();
             long factor = 0L;
             if (groupCount == 2) {
                 String fg = m.group(2).toLowerCase();
-                switch (fg) {
-                    case "y":
-                        factor = 365L * 24L * 60L * 60L * 1000L;
-                        break;
-                    case "d":
-                        factor = 24L * 60L * 60L * 1000L;
-                        break;
-                    case "h":
-                        factor = 60L * 60L * 1000L;
-                        break;
-                    default:
-                        throw new IllegalStateException("Unsupported factor " + fg + ", option value is " + ageOption);
-                }
+                factor = switch (fg) {
+                    case "y" -> 365L * 24L * 60L * 60L * 1000L;
+                    case "d" -> 24L * 60L * 60L * 1000L;
+                    case "h" -> 60L * 60L * 1000L;
+                    default ->
+                            throw new IllegalStateException("Unsupported factor " + fg + ", option value is " + ageOption);
+                };
             }
             long base = Long.parseLong(m.group(1));
             return base * factor;

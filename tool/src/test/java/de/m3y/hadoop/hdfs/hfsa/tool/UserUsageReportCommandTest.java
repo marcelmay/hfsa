@@ -23,13 +23,15 @@ public class UserUsageReportCommandTest {
             command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
             command.user = "mm";
             command.run();
-            final String expected = "\n" +
-                    "Size report (user=mm, start dir=/)\n" +
-                    "\n" +
-                    "/              | 172 MiB\n" +
-                    "/test3         | 172 MiB\n" +
-                    "/test3/foo     | 171 MiB\n" +
-                    "/test3/foo/bar | 151 MiB\n";
+            final String expected = """
+                    
+                    Size report (user=mm, start dir=/)
+                    
+                    /              | 172 MiB
+                    /test3         | 172 MiB
+                    /test3/foo     | 171 MiB
+                    /test3/foo/bar | 151 MiB
+                    """;
 
             assertThat(byteArrayOutputStream)
                     .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
@@ -37,27 +39,29 @@ public class UserUsageReportCommandTest {
     }
 
     @Test
-     public void testRunWithSubdir() {
-         UserUsageReportCommand command = new UserUsageReportCommand();
-         command.mainCommand = new HdfsFSImageTool.MainCommand();
-         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-         try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
-             command.mainCommand.out = printStream;
-             command.mainCommand.err = command.mainCommand.out;
-             command.mainCommand.dirs = new String[] {"/test3/foo"};
-             command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
-             command.user = "mm";
-             command.run();
-             final String expected = "\n" +
-                     "Size report (user=mm, start dir=/test3/foo)\n" +
-                     "\n" +
-                     "/              | 171 MiB\n" +
-                     "/test3         | 171 MiB\n" +
-                     "/test3/foo     | 171 MiB\n" +
-                     "/test3/foo/bar | 151 MiB\n";
+    public void testRunWithSubDir() {
+        UserUsageReportCommand command = new UserUsageReportCommand();
+        command.mainCommand = new HdfsFSImageTool.MainCommand();
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (PrintStream printStream = new PrintStream(byteArrayOutputStream)) {
+            command.mainCommand.out = printStream;
+            command.mainCommand.err = command.mainCommand.out;
+            command.mainCommand.dirs = new String[]{"/test3/foo"};
+            command.mainCommand.fsImageFile = new File("src/test/resources/fsi_small.img");
+            command.user = "mm";
+            command.run();
+            final String expected = """
+                    
+                    Size report (user=mm, start dir=/test3/foo)
+                    
+                    /              | 171 MiB
+                    /test3         | 171 MiB
+                    /test3/foo     | 171 MiB
+                    /test3/foo/bar | 151 MiB
+                    """;
 
-             assertThat(byteArrayOutputStream)
-                     .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
-         }
-     }
+            assertThat(byteArrayOutputStream)
+                    .hasToString(expected.replace('.', DECIMAL_SEPARATOR));
+        }
+    }
 }

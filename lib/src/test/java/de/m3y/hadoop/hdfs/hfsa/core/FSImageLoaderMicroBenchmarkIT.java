@@ -86,28 +86,23 @@ public class FSImageLoaderMicroBenchmarkIT {
         new Runner(opt).run();
     }
 
-    private static class BenchmarkVisitor implements FsVisitor {
-        private final Blackhole blackhole;
-
-        public BenchmarkVisitor(Blackhole blackhole) {
-            this.blackhole = blackhole;
-        }
+    private record BenchmarkVisitor(Blackhole blackhole) implements FsVisitor {
 
         @Override
-        public void onFile(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
-        }
+            public void onFile(FsImageProto.INodeSection.INode inode, String path) {
+                blackhole.consume(inode);
+            }
 
-        @Override
-        public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
-        }
+            @Override
+            public void onDirectory(FsImageProto.INodeSection.INode inode, String path) {
+                blackhole.consume(inode);
+            }
 
-        @Override
-        public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
-            blackhole.consume(inode);
+            @Override
+            public void onSymLink(FsImageProto.INodeSection.INode inode, String path) {
+                blackhole.consume(inode);
+            }
         }
-    }
 
     public static void main(String[] args) throws RunnerException {
         new FSImageLoaderMicroBenchmarkIT().runMicroBenchMark();
