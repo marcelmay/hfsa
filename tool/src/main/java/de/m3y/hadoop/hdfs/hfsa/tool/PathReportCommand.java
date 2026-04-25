@@ -64,7 +64,7 @@ public class PathReportCommand extends AbstractReportCommand {
         }
 
         private void onInode(INode iNode, String path) {
-            if (predicate.test(iNode, path)) {
+            if (predicate.test(iNode)) {
                 final String iNodeName = iNode.getName().toStringUtf8();
                 final String absolutPath = path.length() > 1 ? path + '/' + iNodeName : path + iNodeName;
                 char iNodeType = '-';
@@ -92,7 +92,7 @@ public class PathReportCommand extends AbstractReportCommand {
 
     @FunctionalInterface
     public interface INodePredicate {
-        boolean test(INode iNode, String path);
+        boolean test(INode iNode);
     }
 
     private void createReport(FsImageData fsImageData) {
@@ -107,7 +107,7 @@ public class PathReportCommand extends AbstractReportCommand {
                     }
 
                     @Override
-                    public boolean test(INode iNode, String path) {
+                    public boolean test(INode iNode) {
                         final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(iNode);
                         return userPattern.matcher(permissionStatus.getUserName()).matches();
                     }
@@ -115,7 +115,7 @@ public class PathReportCommand extends AbstractReportCommand {
             } else {
                 predicate = new INodePredicate() {
                     @Override
-                    public boolean test(INode iNode, String path) {
+                    public boolean test(INode iNode) {
                         return true;
                     }
 
