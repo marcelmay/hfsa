@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto.INodeSection.INode;
 import picocli.CommandLine;
@@ -30,6 +31,20 @@ public class PathReportCommand extends AbstractReportCommand {
      * @param permission user, group, FS permissions
      */
     record Result(long permission, String path, char iNodeType) {
+    }
+
+    static class Report {
+        final Set<Result> results;
+        final long fileCount;
+        final long dirCount;
+        final long symLinkCount;
+
+        Report(Set<Result> results, long fileCount, long dirCount, long symLinkCount) {
+            this.results = results;
+            this.fileCount = fileCount;
+            this.dirCount = dirCount;
+            this.symLinkCount = symLinkCount;
+        }
     }
 
     static class PathVisitor implements FsVisitor {
@@ -133,6 +148,18 @@ public class PathReportCommand extends AbstractReportCommand {
                         dir);
             }
 
+            if (isJson()) {
+                final Report report = new Report(visitor.results,
+                        visitor.fileCount.longValue(),
+                        visitor.dirCount.longValue(),
+                        visitor.symLinkCount.longValue());
+                mainCommand.out.println(getGson().toJson(report));
+                return;
+            } else if (isCsv()) {
+                doCsvReport(visitor, fsImageData);
+                return;
+            }
+
             mainCommand.out.println();
             final String title = "Path report (" +
                     (mainCommand.dirs.length == 1 ? "path=" + mainCommand.dirs[0] : "paths=" + Arrays.toString(mainCommand.dirs))
@@ -175,6 +202,18 @@ public class PathReportCommand extends AbstractReportCommand {
                 mainCommand.out.println(buf);
             }
 
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void doCsvReport(PathVisitor visitor, FsImageData fsImageData) {
+        try (CSVPrinter printer = getCsvPrinter()) {
+            printer.printRecord("Permission", "Type", "Path");
+            for (Result result : visitor.results) {
+                printer.printRecord(fsImageData.getPermissionStatus(result.permission),
+                        result.iNodeType, result.path);
+            }
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

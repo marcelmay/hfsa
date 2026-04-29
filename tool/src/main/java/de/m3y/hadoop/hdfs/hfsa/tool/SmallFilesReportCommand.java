@@ -15,6 +15,7 @@ import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
@@ -29,6 +30,16 @@ import picocli.CommandLine;
         showDefaultValues = true
 )
 public class SmallFilesReportCommand extends AbstractReportCommand {
+
+    static class PathCount {
+        final String path;
+        final long count;
+
+        PathCount(String path, long count) {
+            this.path = path;
+            this.count = count;
+        }
+    }
 
     static class UserReport {
         final String userName;
@@ -116,8 +127,37 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                 final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting directory {} finished [{}ms].", dir, System.currentTimeMillis() - start);
 
-                handleReport(report);
+                if (isJson()) {
+                    mainCommand.out.println(getGson().toJson(report));
+                } else if (isCsv()) {
+                    doCsvReport(report);
+                } else {
+                    handleReport(report);
+                }
             }
+        }
+    }
+
+    private void doCsvReport(Report report) {
+        try (CSVPrinter printer = getCsvPrinter()) {
+            printer.printRecord("Type", "Name", "Path", "Small Files");
+            printer.printRecord("Overall", "/", "", report.sumOverallSmallFiles);
+            for (Map.Entry<String, UserReport> entry : report.userToReport.entrySet()) {
+                printer.printRecord("User", entry.getKey(), "", entry.getValue().sumSmallFiles);
+            }
+            // Hotspots
+            for (UserReport userReport : report.userToReport.values()) {
+                List<PathCount> hotspots = userReport.pathToCounter.entrySet().stream()
+                        .map(e -> new PathCount(e.getKey(), e.getValue().longValue()))
+                        .sorted(Comparator.comparingLong((PathCount pc) -> pc.count).reversed())
+                        .limit(hotspotsLimit)
+                        .toList();
+                for (PathCount pc : hotspots) {
+                    printer.printRecord("Hotspot", userReport.userName, pc.path, pc.count);
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 

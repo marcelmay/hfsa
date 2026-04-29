@@ -38,12 +38,14 @@ public class HdfsFSImageToolTest {
         assertThat(byteArrayOutputStream)
                 .hasToString("""
                         Analyze Hadoop FSImage file for user/group reports
-                        Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-p=<dirs>[,<dirs>...]]... FILE
-                                         [COMMAND]
+                        Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-o=<outputFormat>] [-p=<dirs>[,
+                                         <dirs>...]]... FILE [COMMAND]
                               FILE        FSImage file to process.
                               -fun, --filter-by-user=<userNameFilter>
                                           Filter user name by <regexp>.
                           -h, --help      Show this help message and exit.
+                          -o, --output=<outputFormat>
+                                          Enable output format (json or csv).
                           -p, --path=<dirs>[,<dirs>...]
                                           Directory path(s) to start traversing (default: [/]).
                                             Default: [/]

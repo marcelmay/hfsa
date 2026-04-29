@@ -3,10 +3,16 @@ package de.m3y.hadoop.hdfs.hfsa.tool;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.concurrent.atomic.LongAdder;
 
+import com.google.gson.*;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageLoader;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -19,6 +25,39 @@ abstract class AbstractReportCommand implements Runnable {
 
     @CommandLine.ParentCommand
     protected HdfsFSImageTool.MainCommand mainCommand;
+
+    protected boolean isJson() {
+        return mainCommand.outputFormat == HdfsFSImageTool.MainCommand.OutputFormat.json;
+    }
+
+    protected boolean isCsv() {
+        return mainCommand.outputFormat == HdfsFSImageTool.MainCommand.OutputFormat.csv;
+    }
+
+    protected CSVPrinter getCsvPrinter() throws IOException {
+        return new CSVPrinter(mainCommand.out, CSVFormat.DEFAULT);
+    }
+
+    private static class LongAdderTypeAdapter extends TypeAdapter<LongAdder> {
+        @Override
+        public void write(JsonWriter out, LongAdder value) throws IOException {
+            out.value(value.longValue());
+        }
+
+        @Override
+        public LongAdder read(JsonReader in) throws IOException {
+            LongAdder longAdder = new LongAdder();
+            longAdder.add(in.nextLong());
+            return longAdder;
+        }
+    }
+
+    protected Gson getGson() {
+        return new GsonBuilder()
+                .registerTypeAdapter(LongAdder.class, new LongAdderTypeAdapter())
+                .setPrettyPrinting()
+                .create();
+    }
 
     protected FsImageData loadFsImage() {
         try (RandomAccessFile file = new RandomAccessFile(mainCommand.fsImageFile, "r")) {

@@ -11,6 +11,7 @@ import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import de.m3y.hadoop.hdfs.hfsa.util.SizeBucket;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
@@ -140,8 +141,59 @@ class SummaryReportCommand extends AbstractReportCommand {
                 final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
-                doSummary(report);
+                if (isJson()) {
+                    mainCommand.out.println(getGson().toJson(report));
+                } else if (isCsv()) {
+                    doCsvSummary(report);
+                } else {
+                    doSummary(report);
+                }
             }
+        }
+    }
+
+    void doCsvSummary(Report report) {
+        try (CSVPrinter printer = getCsvPrinter()) {
+            printer.printRecord("Type", "Name", "Directories", "Symlinks", "Files", "Size", "Blocks", "Size Buckets (0B to 256MiB+)");
+
+            // Overall
+            printer.print("Overall");
+            printer.print("/");
+            printer.print(report.overallStats.sumDirectories.longValue());
+            printer.print(report.overallStats.sumSymLinks.longValue());
+            printer.print(report.overallStats.sumFiles);
+            printer.print(report.overallStats.sumFileSize);
+            printer.print(report.overallStats.sumBlocks);
+            printer.print(Arrays.toString(report.overallStats.fileSizeBuckets.get()));
+            printer.println();
+
+            // Groups
+            for (GroupStats stats : report.groupStats.values()) {
+                printer.print("Group");
+                printer.print(stats.groupName);
+                printer.print(stats.sumDirectories.longValue());
+                printer.print(stats.sumSymLinks.longValue());
+                printer.print(stats.sumFiles);
+                printer.print(stats.sumFileSize);
+                printer.print(stats.sumBlocks);
+                printer.print(Arrays.toString(stats.fileSizeBuckets.get()));
+                printer.println();
+            }
+
+            // Users
+            for (UserStats stats : report.userStats.values()) {
+                printer.print("User");
+                printer.print(stats.userName);
+                printer.print(stats.sumDirectories.longValue());
+                printer.print(stats.sumSymLinks.longValue());
+                printer.print(stats.sumFiles);
+                printer.print(stats.sumFileSize);
+                printer.print(stats.sumBlocks);
+                printer.print(Arrays.toString(stats.fileSizeBuckets.get()));
+                printer.println();
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 

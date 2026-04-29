@@ -47,6 +47,15 @@ public class HdfsFSImageTool {
                 description = "Directory path(s) to start traversing (default: ${DEFAULT-VALUE}).")
         String[] dirs = new String[]{"/"};
 
+        public enum OutputFormat {
+            json, csv
+        }
+
+        @Option(names = {"-o", "--output"},
+                description = "Enable output format (json or csv).",
+                scope = ScopeType.INHERIT)
+        OutputFormat outputFormat;
+
         @Option(names = {"-fun", "--filter-by-user"},
                 description = "Filter user name by <regexp>.")
         String userNameFilter;
@@ -99,7 +108,8 @@ public class HdfsFSImageTool {
 
         CommandLine cmd = new CommandLine(new MainCommand());
         cmd.setColorScheme(Help.defaultColorScheme(Help.Ansi.AUTO));
-        cmd.setOut(new PrintWriter(out));
+        cmd.setOut(new PrintWriter(out, true));
+        cmd.setErr(new PrintWriter(err, true));
         cmd.setExecutionExceptionHandler(exceptionHandler);
         cmd.setExecutionStrategy(new RunLast());
         return cmd.execute(args);

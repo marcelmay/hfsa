@@ -16,6 +16,7 @@ import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import picocli.CommandLine;
@@ -101,12 +102,29 @@ public class UserUsageReportCommand extends AbstractReportCommand {
                 final SizeReport report = computeReport(fsImageData, dir);
                 log.info("Visiting directory {} finished [{}ms].", dir, System.currentTimeMillis() - start);
 
-                handleReport(report, dir);
+                if (isJson()) {
+                    mainCommand.out.println(getGson().toJson(report));
+                } else if (isCsv()) {
+                    doCsvReport(report);
+                } else {
+                    handleReport(report, dir);
+                }
 
                 if (mainCommand.dirs.length > 1) {
                     mainCommand.out.println();
                 }
             }
+        }
+    }
+
+    private void doCsvReport(SizeReport report) {
+        try (CSVPrinter printer = getCsvPrinter()) {
+            printer.printRecord("Path", "Size");
+            for (Map.Entry<String, LongAdder> entry : report.pathToSize.entrySet()) {
+                printer.printRecord(entry.getKey(), entry.getValue().longValue());
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 

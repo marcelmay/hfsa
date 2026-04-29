@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import picocli.CommandLine;
@@ -37,7 +38,16 @@ public class InodeInfoCommand extends AbstractReportCommand {
         PrintStream out = mainCommand.out;
         try {
             final FsImageProto.INodeSection.INode inode = loadInode(fsImageData, inodeId);
-            out.println(inode.toString());
+            if (isJson()) {
+                out.println(getGson().toJson(inode));
+            } else if (isCsv()) {
+                try (CSVPrinter printer = getCsvPrinter()) {
+                    printer.printRecord("ID", "Name", "Type");
+                    printer.printRecord(inode.getId(), inode.getName().toStringUtf8(), inode.getType());
+                }
+            } else {
+                out.println(inode.toString());
+            }
         } catch (IOException e) {
             out.println("Can not find INode by id/path " + inodeId);
         }

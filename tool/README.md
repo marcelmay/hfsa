@@ -16,28 +16,61 @@ The HFSA tool provides a summary overview of the HDFS data files and directories
    You need a JDK 8+ installation and `java` in your `PATH`
    
 ### Usage
-
 #### Default (showing summary)
 ```
 Analyze Hadoop FSImage file for user/group reports
-Usage: hfsa-tool [-hV] [-v]... [-fun=<userNameFilter>] [-p=<dirs>[,
+Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-o=<outputFormat>] [-p=<dirs>[,
                  <dirs>...]]... FILE [COMMAND]
-      FILE        FSImage file to process.
+      FILE            FSImage file to process.
       -fun, --filter-by-user=<userNameFilter>
-                  Filter user name by <regexp>.
-  -h, --help      Show this help message and exit.
+                      Filter user name by <regexp>.
+  -h, --help          Show this help message and exit.
+  -o, --output=<outputFormat>
+                      Enable output format (json or csv).
   -p, --path=<dirs>[,<dirs>...]
-                  Directory path(s) to start traversing (default: [/]).
-                    Default: [/]
-  -v              Turns on verbose output. Use `-vv` for debug output.
-  -V, --version   Print version information and exit.
+                      Directory path(s) to start traversing (default: [/]).
+                        Default: [/]
+  -v                  Turns on verbose output. Use `-vv` for debug output.
+  -V, --version       Print version information and exit.
 Commands:
+...
   summary         Generates an HDFS usage summary (default command if no other
                     command specified)
   smallfiles, sf  Reports on small file usage
   inode, i        Shows INode details
   path, p         Lists INode paths
+  userusage, uu   Reports on top usage (e.g. size) locations of a user
 Runs summary command by default.
+```
+
+#### JSON and CSV output
+Enable JSON or CSV output by adding `-o` or `--output` option with `json` or `csv` value. 
+
+Example summary as JSON:
+```bash
+> hfsa-tool src/test/resources/fsi_small.img summary -o json
+{
+  "dirPath": "/",
+  "overallStats": {
+    "sumFiles": 11,
+...
+```
+
+Example summary as CSV:
+```bash
+> hfsa-tool src/test/resources/fsi_small.img summary -o csv
+Type,Name,Directories,Symlinks,Files,Size,Blocks,Size Buckets (0B to 256MiB+)
+Overall,/,8,0,11,348019712,12,"[0, 2, 1, 2, 1, 0, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]"
+Group,supergroup,8,0,8,159275008,8,"[0, 1, 1, 2, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+...
+```
+
+Example inode as JSON:
+```bash
+> hfsa-tool src/test/resources/fsi_small.img inode -o json "/"
+{
+  "id_": 16385,
+...
 ```
 
 #### Example
