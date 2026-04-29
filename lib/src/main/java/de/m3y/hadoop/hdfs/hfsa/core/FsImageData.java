@@ -275,8 +275,6 @@ public class FsImageData {
                 FsImageProto.INodeSection.INodeSymlink s = inode.getSymlink();
                 yield s.getPermission();
             }
-            default -> throw new IllegalStateException("No implementation for getting permission status for type "
-                    + inode.getType().name() + " of INode " + inode);
         };
     }
 

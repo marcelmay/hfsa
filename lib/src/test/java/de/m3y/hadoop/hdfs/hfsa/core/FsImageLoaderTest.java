@@ -344,7 +344,7 @@ public class FsImageLoaderTest {
         assertThatExceptionOfType(FileNotFoundException.class)
                 .isThrownBy(() -> fsImageData.getFileINodesInDirectory("/does-not-exist"));
 
-        // Invalid directory : path is file
+        // Invalid directory : path is a file
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> fsImageData.getFileINodesInDirectory("/test3/test.img"));
     }

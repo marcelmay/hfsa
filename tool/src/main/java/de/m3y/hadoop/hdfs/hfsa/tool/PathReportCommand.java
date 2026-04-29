@@ -9,11 +9,16 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.server.namenode.FsImageProto.INodeSection.INode;
+import org.jspecify.annotations.NonNull;
 import picocli.CommandLine;
 
 /**
@@ -33,18 +38,44 @@ public class PathReportCommand extends AbstractReportCommand {
     record Result(long permission, String path, char iNodeType) {
     }
 
-    static class Report {
-        final Set<Result> results;
-        final long fileCount;
-        final long dirCount;
-        final long symLinkCount;
+    private static class ResultTypeAdapter extends TypeAdapter<Result> {
+        private final FsImageData fsImageData;
 
-        Report(Set<Result> results, long fileCount, long dirCount, long symLinkCount) {
-            this.results = results;
-            this.fileCount = fileCount;
-            this.dirCount = dirCount;
-            this.symLinkCount = symLinkCount;
+        public ResultTypeAdapter(FsImageData fsImageData) {
+            this.fsImageData = fsImageData;
         }
+
+        @Override
+        public void write(JsonWriter out, Result value) throws IOException {
+            if (value == null) {
+                out.nullValue();
+            } else {
+                final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(value.permission);
+                out.beginObject()
+                        .name("path").value(value.path)
+                        .name("user").value(permissionStatus.getUserName())
+                        .name("group").value(permissionStatus.getGroupName())
+                        .name("type").value(switch (value.iNodeType) {
+                            case '-' -> "f";
+                            case 'd' -> "d";
+                            case 'l' -> "l";
+                            default -> throw new IllegalStateException("Unexpected value: " + value.iNodeType);
+                        })
+                        .name("permission").value(permissionStatus.getPermission().toString())
+                        .endObject();
+            }
+        }
+
+        @Override
+        public Result read(JsonReader in) {
+            throw new IllegalStateException("Not implemented/unused");
+        }
+    }
+
+    record Report(Set<Result> results,
+                  long fileCount,
+                  long dirCount,
+                  long symLinkCount) {
     }
 
     static class PathVisitor implements FsVisitor {
@@ -100,8 +131,10 @@ public class PathReportCommand extends AbstractReportCommand {
     @Override
     public void run() {
         final FsImageData fsImageData = loadFsImage();
-        if (null != fsImageData) {
+        try {
             createReport(fsImageData);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -110,114 +143,124 @@ public class PathReportCommand extends AbstractReportCommand {
         boolean test(INode iNode);
     }
 
-    private void createReport(FsImageData fsImageData) {
-        try {
-            INodePredicate predicate;
-            if (null != mainCommand.userNameFilter) {
-                Pattern userPattern = Pattern.compile(mainCommand.userNameFilter);
-                predicate = new INodePredicate() {
-                    @Override
-                    public String toString() {
-                        return "user=~" + userPattern;
-                    }
+    private void createReport(FsImageData fsImageData) throws IOException {
+        INodePredicate predicate = getPredicate(fsImageData);
+        final PathVisitor visitor = new PathVisitor(fsImageData, mainCommand.out, predicate);
+        final FsVisitor.Builder builder = new FsVisitor.Builder().parallel();
+        for (String dir : mainCommand.dirs) {
+            builder.visit(fsImageData,
+                    visitor,
+                    dir);
+        }
 
-                    @Override
-                    public boolean test(INode iNode) {
-                        final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(iNode);
-                        return userPattern.matcher(permissionStatus.getUserName()).matches();
-                    }
-                };
-            } else {
-                predicate = new INodePredicate() {
-                    @Override
-                    public boolean test(INode iNode) {
-                        return true;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "no filter";
-                    }
-                };
-            }
-            final PathVisitor visitor = new PathVisitor(fsImageData, mainCommand.out, predicate);
-            final FsVisitor.Builder builder = new FsVisitor.Builder().parallel();
-            for (String dir : mainCommand.dirs) {
-                builder.visit(fsImageData,
-                        visitor,
-                        dir);
-            }
-
-            if (isJson()) {
-                final Report report = new Report(visitor.results,
-                        visitor.fileCount.longValue(),
-                        visitor.dirCount.longValue(),
-                        visitor.symLinkCount.longValue());
-                mainCommand.out.println(getGson().toJson(report));
+        switch (mainCommand.outputFormat) {
+            case json:
+                doJsonReport(fsImageData, visitor);
                 return;
-            } else if (isCsv()) {
+            case csv:
                 doCsvReport(visitor, fsImageData);
                 return;
-            }
-
-            mainCommand.out.println();
-            final String title = "Path report (" +
-                    (mainCommand.dirs.length == 1 ? "path=" + mainCommand.dirs[0] : "paths=" + Arrays.toString(mainCommand.dirs))
-                    + ", " + predicate + ") :";
-            mainCommand.out.println(title);
-            mainCommand.out.println(FormatUtil.padRight('-', title.length()));
-
-            mainCommand.out.println();
-            final int fileCount = visitor.fileCount.intValue();
-            final int dirCount = visitor.dirCount.intValue();
-            final int symLinkCount = visitor.symLinkCount.intValue();
-            mainCommand.out.println(fileCount + (fileCount == 1 ? " file, " : " files, ")
-                    + dirCount + (dirCount == 1 ? " directory and " : " directories and ")
-                    + symLinkCount + (symLinkCount == 1 ? " symlink" : " symlinks"));
-            mainCommand.out.println();
-
-            int maxUserNameLength = 0;
-            int maxGroupNameLength = 0;
-            for (Result result : visitor.results) {
-                final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
-                maxUserNameLength = Math.max(maxUserNameLength, permissionStatus.getUserName().length());
-                maxGroupNameLength = Math.max(maxGroupNameLength, permissionStatus.getGroupName().length());
-            }
-
-            for (Result result : visitor.results) {
-                StringBuilder buf = new StringBuilder();
-                final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
-                buf.append(result.iNodeType);
-                buf.append(permissionStatus.getPermission().toString());
-                buf.append(' ');
-                buf.append(permissionStatus.getUserName());
-                FormatUtil.padRight(buf, ' ', maxUserNameLength - permissionStatus.getUserName().length());
-                buf.append(' ');
-                buf.append(permissionStatus.getGroupName());
-                FormatUtil.padRight(buf, ' ', maxGroupNameLength - permissionStatus.getGroupName().length());
-
-                buf.append(' ');
-                buf.append(result.path);
-
-                mainCommand.out.println(buf);
-            }
-
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
+            case txt:
+                doTxtReport(fsImageData, predicate, visitor);
+                break;
         }
     }
 
-    private void doCsvReport(PathVisitor visitor, FsImageData fsImageData) {
+    private void doTxtReport(FsImageData fsImageData, INodePredicate predicate, PathVisitor visitor) {
+        mainCommand.out.println();
+        final String title = "Path report (" +
+                (mainCommand.dirs.length == 1 ? "path=" + mainCommand.dirs[0] : "paths=" + Arrays.toString(mainCommand.dirs))
+                + ", " + predicate + ") :";
+        mainCommand.out.println(title);
+        mainCommand.out.println(FormatUtil.padRight('-', title.length()));
+
+        mainCommand.out.println();
+        final int fileCount = visitor.fileCount.intValue();
+        final int dirCount = visitor.dirCount.intValue();
+        final int symLinkCount = visitor.symLinkCount.intValue();
+        mainCommand.out.println(fileCount + (fileCount == 1 ? " file, " : " files, ")
+                + dirCount + (dirCount == 1 ? " directory and " : " directories and ")
+                + symLinkCount + (symLinkCount == 1 ? " symlink" : " symlinks"));
+        mainCommand.out.println();
+
+        int maxUserNameLength = 0;
+        int maxGroupNameLength = 0;
+        for (Result result : visitor.results) {
+            final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
+            maxUserNameLength = Math.max(maxUserNameLength, permissionStatus.getUserName().length());
+            maxGroupNameLength = Math.max(maxGroupNameLength, permissionStatus.getGroupName().length());
+        }
+
+        for (Result result : visitor.results) {
+            StringBuilder buf = new StringBuilder();
+            final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(result.permission);
+            buf.append(result.iNodeType);
+            buf.append(permissionStatus.getPermission().toString());
+            buf.append(' ');
+            buf.append(permissionStatus.getUserName());
+            FormatUtil.padRight(buf, ' ', maxUserNameLength - permissionStatus.getUserName().length());
+            buf.append(' ');
+            buf.append(permissionStatus.getGroupName());
+            FormatUtil.padRight(buf, ' ', maxGroupNameLength - permissionStatus.getGroupName().length());
+
+            buf.append(' ');
+            buf.append(result.path);
+
+            mainCommand.out.println(buf);
+        }
+    }
+
+    private void doJsonReport(FsImageData fsImageData, PathVisitor visitor) {
+        final Report report = new Report(visitor.results,
+                visitor.fileCount.longValue(),
+                visitor.dirCount.longValue(),
+                visitor.symLinkCount.longValue());
+        GsonBuilder gsonBuilder = createGsonBuilder();
+        gsonBuilder.registerTypeAdapter(Result.class, new ResultTypeAdapter(fsImageData));
+        mainCommand.out.println(gsonBuilder.create().toJson(report));
+    }
+
+    private @NonNull INodePredicate getPredicate(FsImageData fsImageData) {
+        INodePredicate predicate;
+        if (null != mainCommand.userNameFilter) {
+            predicate = new INodePredicate() {
+                final Pattern userPattern = Pattern.compile(mainCommand.userNameFilter);
+
+                @Override
+                public String toString() {
+                    return "user=~" + userPattern;
+                }
+
+                @Override
+                public boolean test(INode iNode) {
+                    final PermissionStatus permissionStatus = fsImageData.getPermissionStatus(iNode);
+                    return userPattern.matcher(permissionStatus.getUserName()).matches();
+                }
+            };
+        } else {
+            predicate = new INodePredicate() {
+                @Override
+                public boolean test(INode iNode) {
+                    return true;
+                }
+
+                @Override
+                public String toString() {
+                    return "no filter";
+                }
+            };
+        }
+        return predicate;
+    }
+
+    private void doCsvReport(PathVisitor visitor, FsImageData fsImageData) throws IOException {
         try (CSVPrinter printer = getCsvPrinter()) {
-            printer.printRecord("Permission", "Type", "Path");
+            printer.printRecord("Path", "Type","Permission");
             for (Result result : visitor.results) {
-                printer.printRecord(fsImageData.getPermissionStatus(result.permission),
-                        result.iNodeType, result.path);
+                printer.printRecord(result.path, result.iNodeType,
+                        fsImageData.getPermissionStatus(result.permission));
             }
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
         }
     }
-
 
 }

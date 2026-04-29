@@ -1,6 +1,7 @@
 package de.m3y.hadoop.hdfs.hfsa.util;
 
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.SystemErasureCodingPolicies;
@@ -24,7 +25,7 @@ public class FsUtil {
      * Checks if INode is a directory.
      *
      * @param inode the inode.
-     * @return true, if directory.
+     * @return true, if is type directory.
      */
     public static boolean isDirectory(FsImageProto.INodeSection.INode inode) {
         return inode.getType() == FsImageProto.INodeSection.INode.Type.DIRECTORY;
@@ -34,7 +35,7 @@ public class FsUtil {
      * Checks if INode is a file.
      *
      * @param inode the inode.
-     * @return true, if file.
+     * @return true, if is type file.
      */
     public static boolean isFile(FsImageProto.INodeSection.INode inode) {
         return inode.getType() == FsImageProto.INodeSection.INode.Type.FILE;
@@ -44,7 +45,7 @@ public class FsUtil {
      * Checks if INode is a symlink.
      *
      * @param inode the inode.
-     * @return true, if symlink.
+     * @return true, if is type symlink.
      */
     public static boolean isSymlink(FsImageProto.INodeSection.INode inode) {
         return inode.getType() == FsImageProto.INodeSection.INode.Type.SYMLINK;
@@ -67,10 +68,21 @@ public class FsUtil {
      * Formats the permission as octal.
      *
      * @param permission the permission.
-     * @return the formatted octal value.
+     * @return the formatted octal value, e.g. "0644"
      */
     public static String toString(FsPermission permission) {
-        return String.format("%o", permission.toShort());
+        return String.format("%04o", permission.toShort());
+    }
+
+    /**
+     * Formats the permission status.
+     *
+     * @param permissionStatus the permission status.
+     * @return the formatted value USER:GROUP:FS_PERM, e.g. "foo:bar:0644"
+     */
+    public static String toString(PermissionStatus permissionStatus) {
+        return String.format("%s:%s:%04o", permissionStatus.getUserName(),
+                permissionStatus.getGroupName(), permissionStatus.getPermission().toShort());
     }
 
     /**

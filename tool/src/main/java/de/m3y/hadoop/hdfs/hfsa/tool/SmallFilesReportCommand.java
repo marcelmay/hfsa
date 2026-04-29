@@ -31,14 +31,7 @@ import picocli.CommandLine;
 )
 public class SmallFilesReportCommand extends AbstractReportCommand {
 
-    static class PathCount {
-        final String path;
-        final long count;
-
-        PathCount(String path, long count) {
-            this.path = path;
-            this.count = count;
-        }
+    record PathCount(String path, long count) {
     }
 
     static class UserReport {
@@ -127,12 +120,16 @@ public class SmallFilesReportCommand extends AbstractReportCommand {
                 final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting directory {} finished [{}ms].", dir, System.currentTimeMillis() - start);
 
-                if (isJson()) {
-                    mainCommand.out.println(getGson().toJson(report));
-                } else if (isCsv()) {
-                    doCsvReport(report);
-                } else {
-                    handleReport(report);
+                switch (mainCommand.outputFormat) {
+                    case json:
+                        mainCommand.out.println(createGsonBuilder().create().toJson(report));
+                        break;
+                    case csv:
+                        doCsvReport(report);
+                        break;
+                    case txt:
+                        handleReport(report);
+                        break;
                 }
             }
         }

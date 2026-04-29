@@ -45,8 +45,9 @@ public class JsonExportTest {
         HdfsFSImageTool.run(new String[]{"-v", "src/test/resources/fsi_small.img", "inode", "-o", "json", "16385"});
 
         String output = byteArrayOutputStream.toString();
-        assertThat(output).contains("\"id_\": 16385");
-        assertThat(output).contains("\"name_\":");
+        assertThat(output).contains("\"id\": 16385");
+        assertThat(output).contains("\"name\":");
+        assertThat(output).contains("\"type\": \"directory\"");
     }
 
     @Test

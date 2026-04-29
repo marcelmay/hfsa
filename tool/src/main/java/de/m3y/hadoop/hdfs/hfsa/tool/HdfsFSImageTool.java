@@ -48,13 +48,13 @@ public class HdfsFSImageTool {
         String[] dirs = new String[]{"/"};
 
         public enum OutputFormat {
-            json, csv
+            json, csv, txt
         }
 
         @Option(names = {"-o", "--output"},
-                description = "Enable output format (json or csv).",
+                description = "Enable output format (json, csv or txt). Default is ${DEFAULT-VALUE}.",
                 scope = ScopeType.INHERIT)
-        OutputFormat outputFormat;
+        OutputFormat outputFormat = OutputFormat.txt;
 
         @Option(names = {"-fun", "--filter-by-user"},
                 description = "Filter user name by <regexp>.")

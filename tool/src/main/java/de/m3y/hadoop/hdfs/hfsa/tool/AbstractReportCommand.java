@@ -6,8 +6,6 @@ import java.io.RandomAccessFile;
 import java.util.concurrent.atomic.LongAdder;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageLoader;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.util.IECBinary;
@@ -26,37 +24,18 @@ abstract class AbstractReportCommand implements Runnable {
     @CommandLine.ParentCommand
     protected HdfsFSImageTool.MainCommand mainCommand;
 
-    protected boolean isJson() {
-        return mainCommand.outputFormat == HdfsFSImageTool.MainCommand.OutputFormat.json;
-    }
-
-    protected boolean isCsv() {
-        return mainCommand.outputFormat == HdfsFSImageTool.MainCommand.OutputFormat.csv;
-    }
-
-    protected CSVPrinter getCsvPrinter() throws IOException {
-        return new CSVPrinter(mainCommand.out, CSVFormat.DEFAULT);
-    }
-
-    private static class LongAdderTypeAdapter extends TypeAdapter<LongAdder> {
-        @Override
-        public void write(JsonWriter out, LongAdder value) throws IOException {
-            out.value(value.longValue());
-        }
-
-        @Override
-        public LongAdder read(JsonReader in) throws IOException {
-            LongAdder longAdder = new LongAdder();
-            longAdder.add(in.nextLong());
-            return longAdder;
+    protected CSVPrinter getCsvPrinter() {
+        try {
+            return new CSVPrinter(mainCommand.out, CSVFormat.DEFAULT);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 
-    protected Gson getGson() {
+    protected GsonBuilder createGsonBuilder() {
         return new GsonBuilder()
-                .registerTypeAdapter(LongAdder.class, new LongAdderTypeAdapter())
-                .setPrettyPrinting()
-                .create();
+                .registerTypeAdapter(LongAdder.class, new JsonUtil.LongAdderTypeAdapter())
+                .setPrettyPrinting();
     }
 
     protected FsImageData loadFsImage() {

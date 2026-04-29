@@ -102,12 +102,16 @@ public class UserUsageReportCommand extends AbstractReportCommand {
                 final SizeReport report = computeReport(fsImageData, dir);
                 log.info("Visiting directory {} finished [{}ms].", dir, System.currentTimeMillis() - start);
 
-                if (isJson()) {
-                    mainCommand.out.println(getGson().toJson(report));
-                } else if (isCsv()) {
-                    doCsvReport(report);
-                } else {
-                    handleReport(report, dir);
+                switch (mainCommand.outputFormat) {
+                    case json:
+                        mainCommand.out.println(createGsonBuilder().create().toJson(report));
+                        break;
+                    case csv:
+                        doCsvReport(report);
+                        break;
+                    case txt:
+                        handleReport(report, dir);
+                        break;
                 }
 
                 if (mainCommand.dirs.length > 1) {

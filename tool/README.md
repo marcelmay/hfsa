@@ -26,14 +26,14 @@ Usage: hfsa-tool [-hVv] [-fun=<userNameFilter>] [-o=<outputFormat>] [-p=<dirs>[,
                       Filter user name by <regexp>.
   -h, --help          Show this help message and exit.
   -o, --output=<outputFormat>
-                      Enable output format (json or csv).
+                      Enable output format (json, csv or txt). Default is txt.
   -p, --path=<dirs>[,<dirs>...]
                       Directory path(s) to start traversing (default: [/]).
                         Default: [/]
   -v                  Turns on verbose output. Use `-vv` for debug output.
   -V, --version       Print version information and exit.
+  
 Commands:
-...
   summary         Generates an HDFS usage summary (default command if no other
                     command specified)
   smallfiles, sf  Reports on small file usage
@@ -43,35 +43,6 @@ Commands:
 Runs summary command by default.
 ```
 
-#### JSON and CSV output
-Enable JSON or CSV output by adding `-o` or `--output` option with `json` or `csv` value. 
-
-Example summary as JSON:
-```bash
-> hfsa-tool src/test/resources/fsi_small.img summary -o json
-{
-  "dirPath": "/",
-  "overallStats": {
-    "sumFiles": 11,
-...
-```
-
-Example summary as CSV:
-```bash
-> hfsa-tool src/test/resources/fsi_small.img summary -o csv
-Type,Name,Directories,Symlinks,Files,Size,Blocks,Size Buckets (0B to 256MiB+)
-Overall,/,8,0,11,348019712,12,"[0, 2, 1, 2, 1, 0, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]"
-Group,supergroup,8,0,8,159275008,8,"[0, 1, 1, 2, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
-...
-```
-
-Example inode as JSON:
-```bash
-> hfsa-tool src/test/resources/fsi_small.img inode -o json "/"
-{
-  "id_": 16385,
-...
-```
 
 #### Example
 ```
@@ -157,6 +128,21 @@ mm       |            3 | /
          |            1 | /test3/foo/bar
 ---------------------------------------------------
 ```
+#### Report top size usage locations for a user
+
+Useful to find locations with old data.
+
+```
+> hfsa-tool src/test/resources/fsi_small.img uu -a 60d mm 
+
+Size report (user=mm, start dir=/, last modification older 2021-05-12T23:49:44.203)
+
+/              | 172 MiB
+/test3         | 172 MiB
+/test3/foo     | 171 MiB
+/test3/foo/bar | 151 MiB
+```
+
 #### Show INode details 
 
 Show details of selected INode, e.g. by directory path or file path or inode ID:
@@ -194,7 +180,59 @@ file {
   storagePolicyID: 0
 }
 ```
-
+ Example with inode output as JSON:
+```bash
+> hfsa-tool src/test/resources/fsi_small.img inode "/" "/test3" "/test3/test_160MiB.img" "/non-existent" -o json 
+{
+  "results": [
+    {
+      "inode_arg": "/",
+      "inode": {
+        "id": 16385,
+        "name": "",
+        "type": "directory",
+        "permission": "mm:supergroup:0755",
+        "nsQuota": 9223372036854775807,
+        "dsQuota": -1,
+        "mtime": 1499493618390,
+        "atime": 1499493618390
+      }
+    },
+    {
+      "inode_arg": "/test3",
+      "inode": {
+        "id": 16388,
+        "name": "test3",
+        "type": "directory",
+        "permission": "mm:supergroup:0755",
+        "nsQuota": -1,
+        "dsQuota": -1,
+        "mtime": 1497734744891,
+        "atime": 1497734744891
+      }
+    },
+    {
+      "inode_arg": "/test3/test_160MiB.img",
+      "inode": {
+        "id": 16402,
+        "name": "test_160MiB.img",
+        "type": "file",
+        "permission": "foo:nobody:0644",
+        "mtime": 1497734744886,
+        "atime": 1497734744886,
+        "replication": 1,
+        "preferredBlockSize": 134217728,
+        "storagePolicyID": 0,
+        "erasureCodingPolicyID": 0
+      }
+    },
+    {
+      "inode_arg": "/non-existent",
+      "error": "Can not find INode by id/path '/non-existent'"
+    }
+  ]
+}
+```
 #### Lists INode paths
 Lists all INode paths (files, directories, symlinks) similar to a recursive 'ls'.
 
@@ -222,20 +260,7 @@ drwxr-xr-x mm supergroup /test3/test3
 
 ```
 
-#### Report top size usage locations for a user
 
-Useful to find locations with old data.
-
-```
-> hfsa-tool src/test/resources/fsi_small.img uu -a 60d mm 
-
-Size report (user=mm, start dir=/, last modification older 2021-05-12T23:49:44.203)
-
-/              | 172 MiB
-/test3         | 172 MiB
-/test3/foo     | 171 MiB
-/test3/foo/bar | 151 MiB
-```
 
 ### Requirements 
 

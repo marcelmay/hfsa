@@ -45,7 +45,8 @@ public class HdfsFSImageToolTest {
                                           Filter user name by <regexp>.
                           -h, --help      Show this help message and exit.
                           -o, --output=<outputFormat>
-                                          Enable output format (json or csv).
+                                          Enable output format (json, csv or txt). Default is txt.
+                                            Default: txt
                           -p, --path=<dirs>[,<dirs>...]
                                           Directory path(s) to start traversing (default: [/]).
                                             Default: [/]

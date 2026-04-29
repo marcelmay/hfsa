@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.regex.Pattern;
 
+import com.google.gson.GsonBuilder;
 import de.m3y.hadoop.hdfs.hfsa.core.FsImageData;
 import de.m3y.hadoop.hdfs.hfsa.core.FsVisitor;
 import de.m3y.hadoop.hdfs.hfsa.util.FsUtil;
@@ -141,12 +142,18 @@ class SummaryReportCommand extends AbstractReportCommand {
                 final Report report = computeReport(fsImageData, dir);
                 log.info("Visiting finished [{}ms].", System.currentTimeMillis() - start);
 
-                if (isJson()) {
-                    mainCommand.out.println(getGson().toJson(report));
-                } else if (isCsv()) {
-                    doCsvSummary(report);
-                } else {
-                    doSummary(report);
+                switch (mainCommand.outputFormat) {
+                    case json:
+                        GsonBuilder gsonBuilder = createGsonBuilder();
+                        gsonBuilder.registerTypeAdapter(SizeBucket.class, new JsonUtil.SizeBucketTypeAdapter());
+                        mainCommand.out.println(gsonBuilder.create().toJson(report));
+                        break;
+                    case csv:
+                        doCsvSummary(report);
+                        break;
+                    case txt:
+                        doSummary(report);
+                        break;
                 }
             }
         }
@@ -375,4 +382,5 @@ class SummaryReportCommand extends AbstractReportCommand {
 
         return report;
     }
+
 }
